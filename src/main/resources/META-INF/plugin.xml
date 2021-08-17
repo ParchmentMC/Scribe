@@ -1,0 +1,29 @@
+<idea-plugin>
+    <id>me.sizableshrimp.intelliparchment</id>
+    <name>IntelliParchment</name>
+    <vendor>SizableShrimp</vendor>
+
+    <description><![CDATA[
+      Allows mapping Parchment mappings on the go in IntelliJ and saving them to a file.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <codeInsight.inlayProvider language="JAVA" implementationClass="me.sizableshrimp.intelliparchment.hints.ParchmentHintProvider"/>
+        <applicationService serviceImplementation="me.sizableshrimp.intelliparchment.settings.ParchmentSettings"/>
+
+        <applicationConfigurable displayName="Parchment Mappings" id="Settings.Parchment" groupId="tools"
+                                 instance="me.sizableshrimp.intelliparchment.settings.ParchmentConfigurable"/>
+    </extensions>
+
+    <actions>
+        <action class="me.sizableshrimp.intelliparchment.action.MapParameterAction" id="MapParchmentParameterAction"
+                icon = "icons/parchment.png"
+                text="Map Parchment Parameter"
+                description="Maps a parameter for Parchment and saves it to the mappings folder">
+            <add-to-group relative-to-action="EditorPopupMenu2" anchor="after" group-id="EditorPopupMenu"/>
+        </action>
+    </actions>
+</idea-plugin>

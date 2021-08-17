@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
+    id 'idea'
+    id 'org.jetbrains.intellij' version '1.1.4'
+    id 'org.cadixdev.licenser' version '0.6.1'
+}
+
+group = pluginGroup
+version = pluginVersion
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+
+repositories {
+    mavenCentral()
+    maven {
+        name 'ParchmentMC'
+        url 'https://maven.parchmentmc.org/'
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}"
+    implementation "org.parchmentmc.feather:io-moshi:${featherVersion}"
+    implementation "com.squareup.moshi:moshi-kotlin:${moshiVersion}"
+}
+
+intellij {
+    pluginName = project.properties.pluginName
+    type = platformType
+    version = platformVersion
+    downloadSources = true
+    plugins = ['java', 'gradle']
+}
+
+license {
+    header = file('HEADER')
+    ext {
+        name = 'IntelliParchment'
+        year = 2021
+        holder = 'SizableShrimp'
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs = ['-Xjvm-default=all']
+    }
+}

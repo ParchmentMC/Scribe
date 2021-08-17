@@ -1,0 +1,12 @@
+.idea/
+.idea_modules/
+*.iml
+*.ipr
+*.iws
+
+/out/
+/build/
+
+hs_err_pid*
+
+/.gradle/
