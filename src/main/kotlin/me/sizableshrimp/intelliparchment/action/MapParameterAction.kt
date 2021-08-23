@@ -69,7 +69,7 @@ class MapParameterAction : AnAction() {
         @Suppress("UnstableApiUsage")
         if (allSuperMethods.isNotEmpty()) {
             allSuperMethods.add(0, containingMethod)
-            val popup = createTargetPopup("Choose method to map", allSuperMethods, ::targetPresentation) { targetMethod ->
+            val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod ->
                 val newParam = targetMethod.parameters.getOrNull(containingMethod.parameterList.getParameterIndex(parameter)) as? PsiParameter ?: return@createTargetPopup
                 mapFun(newParam)
             }

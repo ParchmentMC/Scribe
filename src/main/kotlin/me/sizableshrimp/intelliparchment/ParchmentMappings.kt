@@ -32,6 +32,7 @@ import me.sizableshrimp.intelliparchment.settings.ParchmentSettings
 import me.sizableshrimp.intelliparchment.util.jvmIndex
 import me.sizableshrimp.intelliparchment.util.qualifiedMemberReference
 import org.parchmentmc.feather.mapping.MappingDataBuilder
+import java.io.IOException
 import java.nio.file.Paths
 
 object ParchmentMappings {
@@ -45,7 +46,11 @@ object ParchmentMappings {
         get() = settings.mappingsFolder.nullize(nullizeSpaces = true)?.let(Paths::get)
 
     init {
-        resetMappingContainer()
+        try {
+            resetMappingContainer()
+        } catch (e: IOException) {
+            // Swallow
+        }
     }
 
     fun getParameterMapping(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false) = getParameterData(parameter, create, searchSupers)?.name
@@ -95,6 +100,16 @@ object ParchmentMappings {
     fun resetMappingContainer() {
         val folder = mappingFolderPath
 
-        mappingContainer = if (folder == null || !folder.isDirectory()) null else EnigmaFormattedExplodedIO.INSTANCE.read(folder, true) as MappingDataBuilder
+        try {
+            mappingContainer = if (folder == null || !folder.isDirectory()) {
+                null
+            } else {
+                EnigmaFormattedExplodedIO.INSTANCE.read(folder, true) as MappingDataBuilder
+            }
+        } catch (e: Exception) {
+            mappingContainer = null
+            settings.mappingsFolder = ""
+            throw e
+        }
     }
 }

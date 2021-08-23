@@ -28,10 +28,12 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.UI
 import me.sizableshrimp.intelliparchment.ParchmentMappings
+import java.io.IOException
 import javax.swing.JCheckBox
 
 class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), SearchableConfigurable {
@@ -92,8 +94,13 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
             InlayHintsPassFactory.forceHintsUpdateOnNextPass()
         val mappingsFolderModified = isModified(mappingsFolderField.textField, settings.mappingsFolder)
         settings.mappingsFolder = mappingsFolderField.text
-        if (mappingsFolderModified)
-            ParchmentMappings.resetMappingContainer()
+        if (mappingsFolderModified) {
+            try {
+                ParchmentMappings.resetMappingContainer()
+            } catch (e: IOException) {
+                Messages.showErrorDialog("The folder specified was invalid", "Invalid Parchment Mappings Folder")
+            }
+        }
         settings.displayHints = displayHintsCheckbox.isSelected
     }
 
