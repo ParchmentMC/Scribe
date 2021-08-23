@@ -1,14 +1,41 @@
+/*
+ * IntelliParchment
+ * Copyright (C) 2021 SizableShrimp
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package me.sizableshrimp.intelliparchment.action
 
+import com.intellij.codeInsight.hints.InlayHintsPassFactory
+import com.intellij.codeInsight.navigation.targetPresentation
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiMethod
-import com.intellij.psi.impl.source.PsiParameterImpl
+import com.intellij.psi.PsiParameter
+import com.intellij.ui.list.createTargetPopup
 import com.intellij.util.text.nullize
 import me.sizableshrimp.intelliparchment.ParchmentMappings
+import me.sizableshrimp.intelliparchment.util.findAllSuperMethods
 
 class MapParameterAction : AnAction() {
     override fun update(e: AnActionEvent) {
@@ -16,13 +43,40 @@ class MapParameterAction : AnAction() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        val parameter = e.getData(CommonDataKeys.PSI_ELEMENT) as? PsiParameterImpl ?: return
+        val parameter = e.getData(CommonDataKeys.PSI_ELEMENT) as? PsiParameter ?: return
         val containingMethod = parameter.declarationScope as? PsiMethod ?: return
         val currentName = ParchmentMappings.getParameterMapping(parameter)
-        val mapped = Messages.showInputDialog(
-            e.project, "Enter a new parameter name:", "Map Parameter",
-            Messages.getQuestionIcon(), currentName, inputValidator
-        ) ?: return
+
+        val allSuperMethods = containingMethod.findAllSuperMethods()
+
+        val mapFun = fun(parameter: PsiParameter) {
+            val mapped = Messages.showInputDialog(
+                e.project, "Enter a new parameter name:", "Map Parameter",
+                Messages.getQuestionIcon(), currentName, inputValidator
+            ) ?: return
+
+            if (mapped == currentName)
+                return
+            val parameterData = ParchmentMappings.getParameterData(parameter, create = true) ?: return
+
+            parameterData.name = mapped
+            ParchmentMappings.modified = true
+
+            @Suppress("UnstableApiUsage")
+            InlayHintsPassFactory.forceHintsUpdateOnNextPass()
+        }
+
+        @Suppress("UnstableApiUsage")
+        if (allSuperMethods.isNotEmpty()) {
+            allSuperMethods.add(0, containingMethod)
+            val popup = createTargetPopup("Choose method to map", allSuperMethods, ::targetPresentation) { targetMethod ->
+                val newParam = targetMethod.parameters.getOrNull(containingMethod.parameterList.getParameterIndex(parameter)) as? PsiParameter ?: return@createTargetPopup
+                mapFun(newParam)
+            }
+            popup.showInBestPositionFor(e.getData(CommonDataKeys.EDITOR) ?: return)
+        } else {
+            mapFun(parameter)
+        }
     }
 
     companion object {

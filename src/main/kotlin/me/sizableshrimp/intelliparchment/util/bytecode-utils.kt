@@ -55,12 +55,6 @@ fun getPrimitiveType(internalName: Char): PsiPrimitiveType? {
     }
 }
 
-fun getPrimitiveWrapperClass(internalName: Char, project: Project): PsiClass? {
-    val type = getPrimitiveType(internalName) ?: return null
-    val boxedTypeName = type.boxedTypeName ?: return null
-    return JavaPsiFacade.getInstance(project).findClass(boxedTypeName, GlobalSearchScope.allScope(project))
-}
-
 private fun PsiClassType.erasure() = TypeConversionUtil.erasure(this) as PsiClassType
 
 @Throws(ClassNameResolutionFailedException::class)
@@ -77,21 +71,7 @@ private fun PsiType.appendDescriptor(builder: StringBuilder): StringBuilder {
     }
 }
 
-fun parseClassDescriptor(descriptor: String): String {
-    val internalName = descriptor.substring(1, descriptor.length - 1)
-    return internalName.replace('/', '.')
-}
-
 // Class
-
-val PsiClass.internalName: String?
-    get() {
-        return try {
-            outerQualifiedName?.replace('.', '/') ?: buildInternalName(StringBuilder()).toString()
-        } catch (e: ClassNameResolutionFailedException) {
-            null
-        }
-    }
 
 @Throws(ClassNameResolutionFailedException::class)
 private fun PsiClass.appendInternalName(builder: StringBuilder): StringBuilder {
@@ -102,23 +82,6 @@ private fun PsiClass.appendInternalName(builder: StringBuilder): StringBuilder {
 private fun PsiClass.buildInternalName(builder: StringBuilder): StringBuilder {
     buildInnerName(builder, { it.outerQualifiedName?.replace('.', '/') })
     return builder
-}
-
-val PsiClass.descriptor: String?
-    get() {
-        return try {
-            appendInternalName(StringBuilder().append('L')).append(';').toString()
-        } catch (e: ClassNameResolutionFailedException) {
-            null
-        }
-    }
-
-fun PsiClass.findMethodsByInternalName(internalName: String, checkBases: Boolean = false): Array<PsiMethod> {
-    return if (internalName == INTERNAL_CONSTRUCTOR_NAME) {
-        constructors
-    } else {
-        findMethodsByName(internalName, checkBases)
-    }
 }
 
 // Method

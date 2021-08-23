@@ -29,9 +29,6 @@ import com.intellij.psi.PsiPrimitiveType
 import com.intellij.psi.PsiTypeParameter
 import com.intellij.psi.search.GlobalSearchScope
 
-val PsiClass.packageName
-    get() = (containingFile as? PsiJavaFile)?.packageName
-
 // Type
 
 val PsiClassType.fullQualifiedName
@@ -63,21 +60,6 @@ private fun PsiClass.buildQualifiedName(builder: StringBuilder): StringBuilder {
 private val PsiClass.outerShortName
     get() = if (containingClass == null) name else null
 
-val PsiClass.shortName: String?
-    get() {
-        if (this is PsiTypeParameter) {
-            return null
-        }
-        outerShortName?.let { return it }
-        return try {
-            val builder = StringBuilder()
-            buildInnerName(builder, PsiClass::outerShortName, '.')
-            return builder.toString()
-        } catch (e: ClassNameResolutionFailedException) {
-            null
-        }
-    }
-
 @Throws(ClassNameResolutionFailedException::class)
 inline fun PsiClass.buildInnerName(builder: StringBuilder, getName: (PsiClass) -> String?, separator: Char = '$') {
     var currentClass: PsiClass = this
@@ -108,10 +90,6 @@ inline fun PsiClass.buildInnerName(builder: StringBuilder, getName: (PsiClass) -
     for (i in list.lastIndex downTo 0) {
         builder.append(separator).append(list[i])
     }
-}
-
-fun findQualifiedClass(fullQualifiedName: String, context: PsiElement): PsiClass? {
-    return findQualifiedClass(context.project, fullQualifiedName, context.resolveScope)
 }
 
 fun findQualifiedClass(
@@ -180,89 +158,12 @@ val PsiElement.anonymousElements: Array<PsiElement>
 
 // Inheritance
 
-fun PsiClass.extendsOrImplements(qualifiedClassName: String): Boolean {
-    val aClass = JavaPsiFacade.getInstance(project).findClass(qualifiedClassName, resolveScope) ?: return false
-    return equivalentTo(aClass) || this.isInheritor(aClass, true)
-}
-
-fun PsiClass.addImplements(qualifiedClassName: String) {
-    if (interfaces.any { it.qualifiedName == qualifiedClassName }) {
-        return
-    }
-
-    val project = project
-    val listenerClass = JavaPsiFacade.getInstance(project).findClass(qualifiedClassName, resolveScope) ?: return
-
-    val elementFactory = JavaPsiFacade.getElementFactory(project)
-    val element = elementFactory.createClassReferenceElement(listenerClass)
-
-    val referenceList = implementsList
-    if (referenceList != null) {
-        referenceList.add(element)
-    } else {
-        add(elementFactory.createReferenceList(arrayOf(element)))
-    }
-}
-
 // Member
-
-/**
- * Adds the given method to this class, or its copy. Returns the method actually added
- */
-fun PsiClass.addMethod(template: PsiMethod): PsiMethod? {
-    var theNewMethod: PsiMethod? = null
-    object : AddMethodFix(template, this) {
-        override fun postAddAction(file: PsiFile, editor: Editor?, newMethod: PsiMethod?) {
-            theNewMethod = newMethod
-            super.postAddAction(file, editor, newMethod)
-        }
-    }.applyFix()
-    return theNewMethod
-}
-
-fun PsiClass.findMatchingMethod(
-    pattern: PsiMethod,
-    checkBases: Boolean,
-    name: String = pattern.name,
-    constructor: Boolean = pattern.isConstructor
-): PsiMethod? {
-    return findMethodsByName(name, checkBases).firstOrNull { it.isMatchingMethod(pattern, constructor) }
-}
-
-fun PsiClass.findMatchingMethods(
-    pattern: PsiMethod,
-    checkBases: Boolean,
-    name: String = pattern.name,
-    constructor: Boolean = pattern.isConstructor
-): List<PsiMethod> {
-    return findMethodsByName(name, checkBases).filter { it.isMatchingMethod(pattern, constructor) }
-}
-
-inline fun PsiClass.findMatchingMethods(
-    pattern: PsiMethod,
-    checkBases: Boolean,
-    name: String,
-    func: (PsiMethod) -> Unit
-) {
-    for (method in findMethodsByName(name, checkBases)) {
-        if (method.isMatchingMethod(pattern)) {
-            func(method)
-        }
-    }
-}
 
 fun PsiMethod.isMatchingMethod(pattern: PsiMethod, constructor: Boolean = pattern.isConstructor): Boolean {
     return this.isConstructor == constructor &&
-        areReallyOnlyParametersErasureEqual(this.parameterList, pattern.parameterList) &&
-        (this.isConstructor || constructor || this.returnType.isErasureEquivalentTo(pattern.returnType))
-}
-
-fun PsiClass.findMatchingField(pattern: PsiField, checkBases: Boolean, name: String = pattern.name): PsiField? {
-    return try {
-        findFieldByName(name, checkBases)?.takeIf { it.isMatchingField(pattern) }
-    } catch (e: PsiInvalidElementAccessException) {
-        null
-    }
+            areReallyOnlyParametersErasureEqual(this.parameterList, pattern.parameterList) &&
+            (this.isConstructor || constructor || this.returnType.isErasureEquivalentTo(pattern.returnType))
 }
 
 fun PsiField.isMatchingField(pattern: PsiField): Boolean {
@@ -295,10 +196,6 @@ private fun areReallyOnlyParametersErasureEqual(
 
     return true
 }
-
-fun PsiClass.isJavaOptional(): Boolean = this.qualifiedName == CommonClassNames.JAVA_UTIL_OPTIONAL
-
-fun PsiClassType.isJavaOptional(): Boolean = this.fullQualifiedName == CommonClassNames.JAVA_UTIL_OPTIONAL
 
 class ClassNameResolutionFailedException : Exception {
     constructor() : super()

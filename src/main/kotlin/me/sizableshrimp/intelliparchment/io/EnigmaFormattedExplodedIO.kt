@@ -1,3 +1,26 @@
+/*
+ * IntelliParchment
+ * Copyright (C) 2021 SizableShrimp
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package me.sizableshrimp.intelliparchment.io
 
 import com.google.common.base.CharMatcher
@@ -17,7 +40,6 @@ import org.parchmentmc.feather.mapping.ImmutableMappingDataContainer.ImmutableCl
 import org.parchmentmc.feather.mapping.MappingDataBuilder
 import org.parchmentmc.feather.mapping.MappingDataContainer
 import org.parchmentmc.feather.mapping.MappingDataContainer.PackageData
-import org.parchmentmc.feather.mapping.VersionedMDCDelegate
 import org.parchmentmc.feather.mapping.VersionedMappingDataContainer
 import org.parchmentmc.feather.util.SimpleVersion
 import java.io.File
@@ -112,6 +134,9 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
             packages = moshi.adapter<Collection<PackageData>>(PACKAGE_COLLECTION_TYPE).fromJson(it) ?: throw IOException("packages.json did not deserialize")
         }
         val builder = MappingDataBuilder()
+        packages.forEach {
+            builder.getOrCreatePackage(it.name).addJavadoc(it.javadoc)
+        }
         Files.walkFileTree(input, object : SimpleFileVisitor<Path>() {
             @Throws(IOException::class)
             override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
@@ -123,7 +148,7 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
                 return FileVisitResult.CONTINUE
             }
         })
-        return if (mutable) builder else ImmutableMappingDataContainer(packages, builder.classes)
+        return if (mutable) builder else ImmutableMappingDataContainer(builder.packages, builder.classes)
     }
 
     internal class DataInfo {

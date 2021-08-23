@@ -40,6 +40,7 @@ license {
         year = 2021
         holder = 'SizableShrimp'
     }
+    exclude '**/bytecode-utils.kt', '**/class-utils.kt', '**/MemberReference.kt', '**/psi-utils.kt'
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
