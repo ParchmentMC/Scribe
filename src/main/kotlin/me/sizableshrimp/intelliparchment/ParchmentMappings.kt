@@ -38,6 +38,7 @@ import me.sizableshrimp.intelliparchment.settings.ParchmentSettings
 import me.sizableshrimp.intelliparchment.util.findGradleModule
 import me.sizableshrimp.intelliparchment.util.jvmIndex
 import me.sizableshrimp.intelliparchment.util.qualifiedMemberReference
+import net.minecraftforge.srgutils.IMappingBuilder
 import net.minecraftforge.srgutils.IMappingFile
 import net.minecraftforge.srgutils.MinecraftVersion
 import org.parchmentmc.feather.mapping.MappingDataBuilder
@@ -48,7 +49,7 @@ import java.util.concurrent.TimeUnit
 
 object ParchmentMappings {
     private val settings = ParchmentSettings.instance
-    private val classMapCache: Cache<DataNode<ModuleData>, Map<String, String>> = CacheBuilder.newBuilder()
+    private val classMapCache: Cache<DataNode<ModuleData>, IMappingFile> = CacheBuilder.newBuilder()
         .weakKeys()
         .expireAfterWrite(5, TimeUnit.MINUTES)
         .build()
@@ -102,10 +103,11 @@ object ParchmentMappings {
         val methodDesc = methodRef.descriptor ?: return null
 
         val srgToMoj = getSrgToMoj(method)
-        val remappedClass = srgToMoj?.get(containingClass) ?: containingClass
+        val remappedClass = srgToMoj?.remapClass(containingClass) ?: containingClass
+        val remappedDesc = srgToMoj?.remapDescriptor(methodDesc) ?: methodDesc
 
         val classData = if (create) mappingContainer?.getOrCreateClass(remappedClass) else mappingContainer?.getClass(remappedClass)
-        val methodData = if (create) classData?.getOrCreateMethod(methodRef.name, methodDesc) else classData?.getMethod(methodRef.name, methodDesc)
+        val methodData = if (create) classData?.getOrCreateMethod(methodRef.name, remappedDesc) else classData?.getMethod(methodRef.name, remappedDesc)
 
         if (methodData == null && !create && searchSupers) {
             method.findSuperMethods().forEach { superMethod ->
@@ -141,19 +143,15 @@ object ParchmentMappings {
             classMapCache.get(gradleModule) {
                 val fgModel = gradleModule.children.find { it.key == ForgeGradleIntellijModel.KEY }?.data as? ForgeGradleIntellijModel
                 if (fgModel != null && isOfficialVersion(fgModel.mcVersion))
-                    return@get emptyMap() // The user is already on official classnames, so we don't need the data below
+                    return@get IMappingBuilder.create().build().getMap("left", "right") // The user is already on official classnames, so we return empty data
                 if (fgModel?.clientMappings == null)
                     throw Exception() // Throw an exception that is immediately swallowed, we want to keep checking the cache
 
-                val mappingFile = IMappingFile.load(fgModel.clientMappings).chain(IMappingFile.load(fgModel.extractSrgTaskOutput)).reverse()
-
-                mappingFile.classes.associateTo(mutableMapOf()) {
-                    it.original to it.mapped
-                }.filter { (k, v) -> k != v }
+                IMappingFile.load(fgModel.clientMappings).chain(IMappingFile.load(fgModel.extractSrgTaskOutput)).reverse()
             }
         }
     } catch (e: Exception) {
-        emptyMap()
+        null
     }
 
     private fun isOfficialVersion(mcVersion: String) = try {
