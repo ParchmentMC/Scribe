@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'groovy'
     id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
     id 'idea'
     id 'org.jetbrains.intellij' version '1.1.4'
@@ -17,20 +18,33 @@ repositories {
         name = 'ParchmentMC'
         url = 'https://maven.parchmentmc.org'
     }
+    maven {
+        name = 'Minecraft Forge'
+        url = 'https://maven.minecraftforge.net'
+    }
+    maven {
+        name = 'IntelliJ Dependencies'
+        url = 'https://cache-redirector.jetbrains.com/intellij-dependencies'
+    }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}"
+
     implementation "org.parchmentmc.feather:io-moshi:${featherVersion}"
     implementation "com.squareup.moshi:moshi-kotlin:${moshiVersion}"
+    implementation "net.minecraftforge:srgutils:${srgutilsVersion}"
 }
 
 intellij {
     pluginName = project.properties.pluginName
     type = platformType
     version = platformVersion
+
     downloadSources = true
+    updateSinceUntilBuild = true
     plugins = ['java', 'gradle']
+    sandboxDir = layout.projectDirectory.dir(".sandbox").toString()
 }
 
 license {
@@ -40,11 +54,18 @@ license {
         year = 2021
         holder = 'SizableShrimp'
     }
-    exclude '**/bytecode-utils.kt', '**/class-utils.kt', '**/MemberReference.kt', '**/psi-utils.kt'
+    exclude '**/bytecode-utils.kt', '**/class-utils.kt', '**/MemberReference.kt', '**/psi-utils.kt', '**/gradle-util.kt'
 }
+
+idea.module.excludeDirs.add(project.file(intellij.sandboxDir.get()))
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         freeCompilerArgs = ['-Xjvm-default=all']
     }
+}
+
+compileGroovy {
+    dependsOn tasks.getByPath('compileKotlin')
+    classpath += files(compileKotlin.destinationDir)
 }

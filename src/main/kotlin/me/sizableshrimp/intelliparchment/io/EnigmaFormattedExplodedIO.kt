@@ -40,10 +40,12 @@ import org.parchmentmc.feather.mapping.ImmutableMappingDataContainer.ImmutableCl
 import org.parchmentmc.feather.mapping.MappingDataBuilder
 import org.parchmentmc.feather.mapping.MappingDataContainer
 import org.parchmentmc.feather.mapping.MappingDataContainer.PackageData
+import org.parchmentmc.feather.mapping.VersionedMDCDelegate
 import org.parchmentmc.feather.mapping.VersionedMappingDataContainer
 import org.parchmentmc.feather.util.SimpleVersion
 import java.io.File
 import java.io.IOException
+import java.lang.IllegalArgumentException
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
@@ -124,7 +126,7 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
     }
 
     @Throws(IOException::class)
-    override fun read(input: Path, mutable: Boolean): MappingDataContainer {
+    override fun read(input: Path, mutable: Boolean): VersionedMDCDelegate<*> {
         var info: DataInfo
         input.resolve("info.json").source().buffer().use {
             info = moshi.adapter(DataInfo::class.java).fromJson(it) ?: throw IOException("info.json did not deserialize")
@@ -148,7 +150,8 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
                 return FileVisitResult.CONTINUE
             }
         })
-        return if (mutable) builder else ImmutableMappingDataContainer(builder.packages, builder.classes)
+        val container = if (mutable) builder else ImmutableMappingDataContainer(builder.packages, builder.classes)
+        return VersionedMDCDelegate(info.version ?: throw IllegalArgumentException("info.json version was not set"), container)
     }
 
     internal class DataInfo {

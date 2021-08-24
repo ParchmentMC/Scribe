@@ -32,7 +32,7 @@ class ParchmentFileListener : FileDocumentManagerListener {
             ParchmentMappings.modified = false
 
             val outputPath = ParchmentMappings.mappingFolderPath ?: return
-            val data = ParchmentMappings.mappingContainer ?: return
+            val data = ParchmentMappings.versionedMappingContainer ?: return
 
             EnigmaFormattedExplodedIO.INSTANCE.write(data, outputPath)
         }

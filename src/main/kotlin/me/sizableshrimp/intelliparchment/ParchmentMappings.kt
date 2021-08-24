@@ -23,20 +23,37 @@
 
 package me.sizableshrimp.intelliparchment
 
+import com.google.common.cache.Cache
+import com.google.common.cache.CacheBuilder
+import com.intellij.openapi.externalSystem.model.DataNode
+import com.intellij.openapi.externalSystem.model.project.ModuleData
+import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiParameter
 import com.intellij.util.io.isDirectory
 import com.intellij.util.text.nullize
+import me.sizableshrimp.intelliparchment.gradle.ForgeGradleIntellijModel
 import me.sizableshrimp.intelliparchment.io.EnigmaFormattedExplodedIO
 import me.sizableshrimp.intelliparchment.settings.ParchmentSettings
+import me.sizableshrimp.intelliparchment.util.findGradleModule
 import me.sizableshrimp.intelliparchment.util.jvmIndex
 import me.sizableshrimp.intelliparchment.util.qualifiedMemberReference
+import net.minecraftforge.srgutils.IMappingFile
+import net.minecraftforge.srgutils.MinecraftVersion
 import org.parchmentmc.feather.mapping.MappingDataBuilder
+import org.parchmentmc.feather.mapping.VersionedMDCDelegate
 import java.io.IOException
 import java.nio.file.Paths
+import java.util.concurrent.TimeUnit
 
 object ParchmentMappings {
     private val settings = ParchmentSettings.instance
+    private val classMapCache: Cache<DataNode<ModuleData>, Map<String, String>> = CacheBuilder.newBuilder()
+        .weakKeys()
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .build()
+    var versionedMappingContainer: VersionedMDCDelegate<MappingDataBuilder>? = null
+        private set
     var mappingContainer: MappingDataBuilder? = null
         private set
     var modified: Boolean = false
@@ -84,7 +101,10 @@ object ParchmentMappings {
         val containingClass = methodRef.owner?.replace('.', '/') ?: return null
         val methodDesc = methodRef.descriptor ?: return null
 
-        val classData = if (create) mappingContainer?.getOrCreateClass(containingClass) else mappingContainer?.getClass(containingClass)
+        val srgToMoj = getSrgToMoj(method)
+        val remappedClass = srgToMoj?.get(containingClass) ?: containingClass
+
+        val classData = if (create) mappingContainer?.getOrCreateClass(remappedClass) else mappingContainer?.getClass(remappedClass)
         val methodData = if (create) classData?.getOrCreateMethod(methodRef.name, methodDesc) else classData?.getMethod(methodRef.name, methodDesc)
 
         if (methodData == null && !create && searchSupers) {
@@ -101,15 +121,44 @@ object ParchmentMappings {
         val folder = mappingFolderPath
 
         try {
-            mappingContainer = if (folder == null || !folder.isDirectory()) {
+            versionedMappingContainer = if (folder == null || !folder.isDirectory()) {
                 null
             } else {
-                EnigmaFormattedExplodedIO.INSTANCE.read(folder, true) as MappingDataBuilder
+                @Suppress("UNCHECKED_CAST")
+                EnigmaFormattedExplodedIO.INSTANCE.read(folder, true) as VersionedMDCDelegate<MappingDataBuilder>
             }
+            mappingContainer = versionedMappingContainer?.delegate
         } catch (e: Exception) {
+            versionedMappingContainer = null
             mappingContainer = null
             settings.mappingsFolder = ""
             throw e
         }
+    }
+
+    private fun getSrgToMoj(method: PsiMethod) = try {
+        (method.containingFile as? PsiJavaFile)?.findGradleModule()?.let { gradleModule ->
+            classMapCache.get(gradleModule) {
+                val fgModel = gradleModule.children.find { it.key == ForgeGradleIntellijModel.KEY }?.data as? ForgeGradleIntellijModel
+                if (fgModel != null && isOfficialVersion(fgModel.mcVersion))
+                    return@get emptyMap() // The user is already on official classnames, so we don't need the data below
+                if (fgModel?.clientMappings == null)
+                    throw Exception() // Throw an exception that is immediately swallowed, we want to keep checking the cache
+
+                val mappingFile = IMappingFile.load(fgModel.clientMappings).chain(IMappingFile.load(fgModel.extractSrgTaskOutput)).reverse()
+
+                mappingFile.classes.associateTo(mutableMapOf()) {
+                    it.original to it.mapped
+                }.filter { (k, v) -> k != v }
+            }
+        }
+    } catch (e: Exception) {
+        emptyMap()
+    }
+
+    private fun isOfficialVersion(mcVersion: String) = try {
+        MinecraftVersion.from("1.17") <= MinecraftVersion.from(mcVersion)
+    } catch (e: Exception) {
+        false
     }
 }

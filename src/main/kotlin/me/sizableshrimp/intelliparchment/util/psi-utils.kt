@@ -10,6 +10,10 @@
 
 package me.sizableshrimp.intelliparchment.util
 
+import com.intellij.openapi.externalSystem.model.DataNode
+import com.intellij.openapi.externalSystem.model.project.ModuleData
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDirectory
@@ -20,6 +24,12 @@ import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiType
 import com.intellij.psi.util.TypeConversionUtil
+import org.jetbrains.plugins.gradle.util.GradleUtil
+
+fun PsiElement.findModule(): Module? = ModuleUtilCore.findModuleForPsiElement(this)
+
+@Suppress("UnstableApiUsage")
+fun PsiFile.findGradleModule(): DataNode<ModuleData>? = findModule()?.let { GradleUtil.findGradleModuleData(it) }
 
 fun PsiElement.findContainingClass(): PsiClass? = findParent(resolveReferences = false)
 

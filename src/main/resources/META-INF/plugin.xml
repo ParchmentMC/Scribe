@@ -42,6 +42,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.java</depends>
+    <depends>com.intellij.gradle</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.inlayProvider language="JAVA" implementationClass="me.sizableshrimp.intelliparchment.hints.ParchmentHintProvider"/>
@@ -53,6 +54,10 @@
         <methodImplementor implementation="me.sizableshrimp.intelliparchment.overrideImplement.ParchmentMethodImplementor"/>
 
         <fileDocumentManagerListener implementation="me.sizableshrimp.intelliparchment.io.ParchmentFileListener"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="org.jetbrains.plugins.gradle">
+        <projectResolve implementation="me.sizableshrimp.intelliparchment.gradle.ForgeGradleProjectResolverExtension"/>
     </extensions>
 
     <actions>

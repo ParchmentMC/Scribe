@@ -52,7 +52,6 @@ class ParchmentSettings : PersistentStateComponent<ParchmentSettings.State> {
             state.mappingsFolder = value
         }
 
-    @Suppress("UnstableApiUsage")
     var displayHints: Boolean
         get() = state.displayHints
         set(value) {
