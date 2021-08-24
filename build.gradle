@@ -52,7 +52,7 @@ license {
     ext {
         name = 'IntelliParchment'
         year = 2021
-        holder = 'SizableShrimp'
+        holder = 'ParchmentMC'
     }
     exclude '**/bytecode-utils.kt', '**/class-utils.kt', '**/MemberReference.kt', '**/psi-utils.kt', '**/gradle-util.kt'
 }

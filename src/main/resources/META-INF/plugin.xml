@@ -1,6 +1,6 @@
 <!--
     IntelliParchment
-    Copyright (C) 2021 SizableShrimp
+    Copyright (C) 2021 ParchmentMC
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 <idea-plugin url="https://github.com/SizableShrimp/IntelliParchment">
     <id>me.sizableshrimp.intelliparchment</id>
     <name>Parchment Integration</name>
-    <vendor>SizableShrimp</vendor>
+    <vendor>ParchmentMC</vendor>
 
     <description><![CDATA[
       This plugin adds integration with Parchment to IntelliJ.
@@ -45,23 +45,23 @@
     <depends>com.intellij.gradle</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <codeInsight.inlayProvider language="JAVA" implementationClass="me.sizableshrimp.intelliparchment.hints.ParchmentHintProvider"/>
-        <applicationService serviceImplementation="me.sizableshrimp.intelliparchment.settings.ParchmentSettings"/>
+        <codeInsight.inlayProvider language="JAVA" implementationClass="org.parchmentmc.intelliparchment.hints.ParchmentHintProvider"/>
+        <applicationService serviceImplementation="org.parchmentmc.intelliparchment.settings.ParchmentSettings"/>
 
         <applicationConfigurable displayName="Parchment Mappings" id="Settings.Parchment" groupId="tools"
-                                 instance="me.sizableshrimp.intelliparchment.settings.ParchmentConfigurable"/>
+                                 instance="org.parchmentmc.intelliparchment.settings.ParchmentConfigurable"/>
 
-        <methodImplementor implementation="me.sizableshrimp.intelliparchment.overrideImplement.ParchmentMethodImplementor"/>
+        <methodImplementor implementation="org.parchmentmc.intelliparchment.overrideImplement.ParchmentMethodImplementor"/>
 
-        <fileDocumentManagerListener implementation="me.sizableshrimp.intelliparchment.io.ParchmentFileListener"/>
+        <fileDocumentManagerListener implementation="org.parchmentmc.intelliparchment.io.ParchmentFileListener"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.plugins.gradle">
-        <projectResolve implementation="me.sizableshrimp.intelliparchment.gradle.ForgeGradleProjectResolverExtension"/>
+        <projectResolve implementation="org.parchmentmc.intelliparchment.gradle.ForgeGradleProjectResolverExtension"/>
     </extensions>
 
     <actions>
-        <action class="me.sizableshrimp.intelliparchment.action.MapParameterAction" id="MapParchmentParameterAction"
+        <action class="org.parchmentmc.intelliparchment.action.MapParameterAction" id="MapParchmentParameterAction"
                 icon="icons/parchment.png"
                 text="Map Parchment Parameter"
                 description="Maps a parameter for Parchment and saves it to the mappings folder">
