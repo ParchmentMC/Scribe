@@ -48,6 +48,7 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
 object ParchmentMappings {
+    private val v1_17 = MinecraftVersion.from("1.17")
     private val settings = ParchmentSettings.instance
     private val classMapCache: Cache<DataNode<ModuleData>, IMappingFile> = CacheBuilder.newBuilder()
         .weakKeys()
@@ -142,9 +143,10 @@ object ParchmentMappings {
         (method.containingFile as? PsiJavaFile)?.findGradleModule()?.let { gradleModule ->
             classMapCache.get(gradleModule) {
                 val fgModel = gradleModule.children.find { it.key == ForgeGradleIntellijModel.KEY }?.data as? ForgeGradleIntellijModel
-                if (fgModel != null && isOfficialVersion(fgModel.mcVersion))
-                    return@get IMappingBuilder.create().build().getMap("left", "right") // The user is already on official classnames, so we return empty data
-                if (fgModel?.clientMappings == null)
+                fgModel?.takeIf { it.clientMappings == null || isOfficialVersion(it.mcVersion) }?.let {
+                    return@get IMappingBuilder.create().build().getMap("left", "right") // Return empty data
+                }
+                if (fgModel == null)
                     throw Exception() // Throw an exception that is immediately swallowed, we want to keep checking the cache
 
                 IMappingFile.load(fgModel.clientMappings).chain(IMappingFile.load(fgModel.extractSrgTaskOutput)).reverse()
@@ -155,7 +157,7 @@ object ParchmentMappings {
     }
 
     private fun isOfficialVersion(mcVersion: String) = try {
-        MinecraftVersion.from("1.17") <= MinecraftVersion.from(mcVersion)
+        v1_17 <= MinecraftVersion.from(mcVersion)
     } catch (e: Exception) {
         false
     }

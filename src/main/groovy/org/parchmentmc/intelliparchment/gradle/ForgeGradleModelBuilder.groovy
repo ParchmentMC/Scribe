@@ -45,8 +45,11 @@ class ForgeGradleModelBuilder implements ModelBuilderService {
         if (mcExtension == null || task == null)
             return null
 
-        String mcVersion = getMCVersion((mcExtension.mappingVersion as Provider)?.get() ?: mcExtension.mappingVersion as String)
+        def mappingVersion = (mcExtension.mappingVersion as Provider)?.get() ?: mcExtension.mappingVersion
+        if (!(mappingVersion instanceof String))
+            return null
         def taskOutput = task.outputs.files.singleFile
+        def mcVersion = getMCVersion(mappingVersion)
         if (mcVersion == null || taskOutput == null)
             return null
 
@@ -70,6 +73,8 @@ class ForgeGradleModelBuilder implements ModelBuilderService {
 
     private static File getClientMappings(Project project, String mcVersion) {
         try {
+            if (mcVersion < "1.14.4")
+                return null
             return project.configurations.detachedConfiguration(project.dependencies.create("net.minecraft:client:$mcVersion:mappings@txt")).resolve().iterator().next()
         } catch (Exception ignored) {
             return null

@@ -29,8 +29,8 @@ import com.intellij.codeInsight.hints.presentation.PresentationFactory
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiParameter
 import com.intellij.psi.impl.source.PsiMethodImpl
+import com.intellij.psi.impl.source.PsiParameterImpl
 import com.intellij.refactoring.suggested.startOffset
 import org.parchmentmc.intelliparchment.ParchmentMappings
 import org.parchmentmc.intelliparchment.settings.ParchmentSettings
@@ -45,13 +45,13 @@ class ParchmentHintCollector(editor: Editor) : InlayHintsCollector {
             return true
 
         when (element) {
-            is PsiParameter -> {
+            is PsiParameterImpl -> {
                 val mapped = ParchmentMappings.getParameterMapping(element, searchSupers = true) ?: return true
                 if (element.name == mapped/* || element.name == "p${mapped.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }}"*/) return true
                 val hint = factory.roundWithBackgroundAndSmallInset(factory.text("$mapped:"))
 
                 sink.addInlineElement(
-                    element.nameIdentifier?.startOffset ?: return true,
+                    element.nameIdentifier.startOffset,
                     relatesToPrecedingText = false, presentation = hint, placeAtTheEndOfLine = false
                 )
             }
