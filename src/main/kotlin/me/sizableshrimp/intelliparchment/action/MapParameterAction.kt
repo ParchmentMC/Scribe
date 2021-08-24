@@ -50,10 +50,11 @@ class MapParameterAction : AnAction() {
         val allSuperMethods = containingMethod.findAllSuperMethods()
 
         val mapFun = fun(parameter: PsiParameter) {
-            val mapped = Messages.showInputDialog(
+            // Return early if they canceled (null), but then make null if it's empty or only has spaces
+            val mapped = (Messages.showInputDialog(
                 e.project, "Enter a new parameter name:", "Map Parameter",
                 Messages.getQuestionIcon(), currentName, inputValidator
-            ) ?: return
+            ) ?: return).nullize(nullizeSpaces = true)
 
             if (mapped == currentName)
                 return
@@ -88,13 +89,11 @@ class MapParameterAction : AnAction() {
 
             override fun getErrorText(inputString: String?): String? = if (isValid(inputString)) {
                 null
-            } else if (inputString?.nullize(nullizeSpaces = true) == null) {
-                "Parameter cannot be empty!"
             } else {
                 "$inputString does not conform to the mapping standards. It must start with a lowercase letter and then only contain alphanumeric characters afterwards."
             }
 
-            private fun isValid(inputString: String?) = inputString?.nullize(nullizeSpaces = true)?.let { parameterRegex matches it } ?: false
+            private fun isValid(inputString: String?) = inputString?.nullize(nullizeSpaces = true)?.let { parameterRegex matches it } ?: true
         }
     }
 }

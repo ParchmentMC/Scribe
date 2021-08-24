@@ -14,8 +14,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 repositories {
     mavenCentral()
     maven {
-        name 'ParchmentMC'
-        url 'https://maven.parchmentmc.org/'
+        name = 'ParchmentMC'
+        url = 'https://maven.parchmentmc.org'
     }
 }
 

@@ -10,19 +10,13 @@
 
 package me.sizableshrimp.intelliparchment.util
 
-import com.intellij.codeInsight.daemon.impl.quickfix.AddMethodFix
 import com.intellij.navigation.AnonymousElementProvider
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.CommonClassNames
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiField
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiInvalidElementAccessException
-import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiParameterList
 import com.intellij.psi.PsiPrimitiveType

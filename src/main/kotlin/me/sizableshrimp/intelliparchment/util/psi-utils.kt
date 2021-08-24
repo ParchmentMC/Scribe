@@ -10,32 +10,16 @@
 
 package me.sizableshrimp.intelliparchment.util
 
-import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.openapi.module.Module
-import com.intellij.openapi.module.ModuleUtilCore
-import com.intellij.psi.ElementManipulator
-import com.intellij.psi.ElementManipulators
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiKeyword
-import com.intellij.psi.PsiMember
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiModifier
-import com.intellij.psi.PsiModifier.ModifierConstant
-import com.intellij.psi.PsiParameter
-import com.intellij.psi.PsiParameterList
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiType
-import com.intellij.psi.filters.ElementFilter
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.TypeConversionUtil
-import com.intellij.refactoring.changeSignature.ChangeSignatureUtil
-import com.siyeh.ig.psiutils.ImportUtils
 
 fun PsiElement.findContainingClass(): PsiClass? = findParent(resolveReferences = false)
 
