@@ -23,7 +23,7 @@
 
 <idea-plugin url="https://github.com/ParchmentMC/Scribe">
     <id>org.parchmentmc.scribe</id>
-    <name>Parchment Integration</name>
+    <name>Scribe</name>
     <vendor>ParchmentMC</vendor>
 
     <description><![CDATA[
