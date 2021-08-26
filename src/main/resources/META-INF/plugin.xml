@@ -1,5 +1,5 @@
 <!--
-    IntelliParchment
+    Scribe
     Copyright (C) 2021 ParchmentMC
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,8 +21,8 @@
     SOFTWARE.
 -->
 
-<idea-plugin url="https://github.com/SizableShrimp/IntelliParchment">
-    <id>me.sizableshrimp.intelliparchment</id>
+<idea-plugin url="https://github.com/ParchmentMC/Scribe">
+    <id>org.parchmentmc.scribe</id>
     <name>Parchment Integration</name>
     <vendor>ParchmentMC</vendor>
 
@@ -45,23 +45,23 @@
     <depends>com.intellij.gradle</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <codeInsight.inlayProvider language="JAVA" implementationClass="org.parchmentmc.intelliparchment.hints.ParchmentHintProvider"/>
-        <applicationService serviceImplementation="org.parchmentmc.intelliparchment.settings.ParchmentSettings"/>
+        <codeInsight.inlayProvider language="JAVA" implementationClass="org.parchmentmc.scribe.hints.ParchmentHintProvider"/>
+        <applicationService serviceImplementation="org.parchmentmc.scribe.settings.ParchmentSettings"/>
 
         <applicationConfigurable displayName="Parchment Mappings" id="Settings.Parchment" groupId="tools"
-                                 instance="org.parchmentmc.intelliparchment.settings.ParchmentConfigurable"/>
+                                 instance="org.parchmentmc.scribe.settings.ParchmentConfigurable"/>
 
-        <methodImplementor implementation="org.parchmentmc.intelliparchment.overrideImplement.ParchmentMethodImplementor"/>
+        <methodImplementor implementation="org.parchmentmc.scribe.overrideImplement.ParchmentMethodImplementor"/>
 
-        <fileDocumentManagerListener implementation="org.parchmentmc.intelliparchment.io.ParchmentFileListener"/>
+        <fileDocumentManagerListener implementation="org.parchmentmc.scribe.io.ParchmentFileListener"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.plugins.gradle">
-        <projectResolve implementation="org.parchmentmc.intelliparchment.gradle.ForgeGradleProjectResolverExtension"/>
+        <projectResolve implementation="org.parchmentmc.scribe.gradle.ForgeGradleProjectResolverExtension"/>
     </extensions>
 
     <actions>
-        <action class="org.parchmentmc.intelliparchment.action.MapParameterAction" id="MapParchmentParameterAction"
+        <action class="org.parchmentmc.scribe.action.MapParameterAction" id="MapParchmentParameterAction"
                 icon="icons/parchment.png"
                 text="Map Parchment Parameter"
                 description="Maps a parameter for Parchment and saves it to the mappings folder">

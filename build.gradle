@@ -50,7 +50,7 @@ intellij {
 license {
     header = file('HEADER')
     ext {
-        name = 'IntelliParchment'
+        name = 'Scribe'
         year = 2021
         holder = 'ParchmentMC'
     }
