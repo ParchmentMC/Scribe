@@ -37,15 +37,20 @@ val PsiParameter.jvmIndex: Byte
         var i = 0
         var curIndex = 0
         var jvmIndex: Byte = if (isStatic) 0 else 1
+        var isArray = false
         while (i < params.length) {
             if (curIndex == thisIndex)
                 return jvmIndex
-            when (params[i]) {
-                'D', 'J' -> jvmIndex++
+            val c = params[i]
+            when (c) {
+                'D', 'J' -> if (!isArray) jvmIndex++
                 'L' -> i = params.indexOf(';', startIndex = i) // i++ will add one to this
             }
-            jvmIndex++
-            curIndex++
+            if (!isArray) {
+                jvmIndex++
+                curIndex++
+            }
+            isArray = c == '['
             i++
         }
 
