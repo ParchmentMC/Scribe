@@ -38,91 +38,75 @@ import org.parchmentmc.feather.io.moshi.SimpleVersionAdapter
 import org.parchmentmc.feather.mapping.ImmutableMappingDataContainer
 import org.parchmentmc.feather.mapping.ImmutableMappingDataContainer.ImmutableClassData
 import org.parchmentmc.feather.mapping.MappingDataBuilder
-import org.parchmentmc.feather.mapping.MappingDataContainer
+import org.parchmentmc.feather.mapping.MappingDataContainer.ClassData
 import org.parchmentmc.feather.mapping.MappingDataContainer.PackageData
 import org.parchmentmc.feather.mapping.VersionedMDCDelegate
 import org.parchmentmc.feather.mapping.VersionedMappingDataContainer
 import org.parchmentmc.feather.util.SimpleVersion
-import java.io.File
 import java.io.IOException
-import java.lang.IllegalArgumentException
+import java.io.Writer
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.Objects
-import java.util.TreeSet
+import java.util.SortedMap
+import java.util.WeakHashMap
 import java.util.function.Function
 import java.util.stream.Collectors
+
+private val internalHolderChildClassMap = WeakHashMap<ClassData, SortedMap<String, ClassData>>()
+
+val ClassData.childClassMap: SortedMap<String, ClassData>
+    get() = internalHolderChildClassMap.computeIfAbsent(this) { sortedMapOf(EnigmaFormattedExplodedIO.CLASS_NAME_LENGTH_THEN_LEXICOGRAPHICALLY) }
 
 class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent: String, private val extension: String) : MappingDataIO {
     @Throws(IOException::class)
     override fun write(data: VersionedMappingDataContainer, output: Path) {
-        if (Files.exists(output)) {
-            // noinspection ResultOfMethodCallIgnored
-            Files.walk(output)
-                .sorted(Comparator.reverseOrder())
-                .map { obj: Path -> obj.toFile() }
-                .forEach { obj: File -> obj.delete() }
-        }
+        val existingFiles = output.takeIf(Files::exists)?.let {
+            Files.walk(it).use { s -> s.filter(Files::isRegularFile).map(Path::toAbsolutePath).collect(Collectors.toSet()) }
+        } ?: mutableSetOf()
         Files.createDirectories(output)
-        output.resolve("info.json").sink().buffer().use { sink ->
+
+        val infoJson = output.resolve("info.json").toAbsolutePath()
+        existingFiles.remove(infoJson)
+        infoJson.sink().buffer().use { sink ->
             val info = DataInfo()
             info.version = data.formatVersion
             moshi.adapter(DataInfo::class.java).indent(jsonIndent).toJson(sink, info)
         }
-        output.resolve("packages.json").sink().buffer().use { sink -> moshi.adapter<Any>(PACKAGE_COLLECTION_TYPE).indent(jsonIndent).toJson(sink, data.packages) }
 
-        // Group classes by their outermost classes (via `$` matching)
-        val outerClassesToClasses = data.classes.stream()
-            .map { obj: MappingDataContainer.ClassData -> obj.name }
-            .sorted()
-            .collect(
-                Collectors.groupingBy(
-                    EnigmaWriter::stripToOuter,
-                    Collectors.toCollection { TreeSet(::compareClassNames) }
-                )
-            )
-        val visited: MutableSet<String?> = HashSet()
+        val packageJson = output.resolve("packages.json")
+        existingFiles.remove(packageJson)
+        packageJson.sink().buffer().use { sink -> moshi.adapter<Any>(PACKAGE_COLLECTION_TYPE).indent(jsonIndent).toJson(sink, data.packages) }
 
-        // Write out classes
-        for ((outerClass, classes) in outerClassesToClasses) {
-            val mappingFile = output.resolve("$outerClass.$extension")
-            if (mappingFile.parent != null) {
-                Files.createDirectories(mappingFile.parent)
-            }
-            Files.newBufferedWriter(mappingFile).use { writer ->
-                visited.add(outerClass)
-                var outerClassData = data.getClass(outerClass)
-                // If the data for the outer class is not there, substitute an empty one
-                if (outerClassData == null) outerClassData = ImmutableClassData(
-                    outerClass, emptyList(), emptyList(), emptyList()
-                )
-                EnigmaWriter.writeClass(writer, 0, outerClass, outerClassData)
-                for (clz in classes) {
-                    if (clz!!.contentEquals(outerClass)) continue  // Skip the outer class
-                    visited.add(clz)
-                    for (component in EnigmaWriter.expandClass(clz)) {
-                        if (visited.contains(component)) continue // Skip if it's already been visited
-                        visited.add(component)
-                        if (component.contentEquals(clz)) break // Skip if it's the class currently being written
-                        EnigmaWriter.writeClass(
-                            writer, DOLLAR_SIGN.countIn(component), EnigmaWriter.stripToMostInner(component),
-                            ImmutableClassData(
-                                component, emptyList(), emptyList(), emptyList()
-                            )
-                        )
-                    }
-                    var clzData = data.getClass(clz)
-                    // If the data for the inner class is not there, substitute an empty one
-                    if (clzData == null) clzData = ImmutableClassData(
-                        clz, emptyList(), emptyList(), emptyList()
-                    )
-                    EnigmaWriter.writeClass(writer, DOLLAR_SIGN.countIn(clz), EnigmaWriter.stripToMostInner(clz), clzData)
-                }
+        val classMap = mutableMapOf<String, ClassData>()
+        val classGenerator: (String) -> ClassData = { classname -> classMap.computeIfAbsent(classname) { data.getClass(classname) ?: emptyClassData(classname) } }
+
+        // Generate all the child class map data
+        data.classes.flatMapTo(mutableSetOf()) { EnigmaWriter.expandClass(it.name) }.forEach { classname ->
+            val upperClassname = classname.substringBeforeLast('$')
+            val upperClassData = classGenerator(upperClassname) // Can't inline this as we need to always generate the data
+            if (upperClassname != classname) {
+                upperClassData.childClassMap[classname.substringAfterLast('$')] = classGenerator(classname)
             }
         }
+
+        // Write out classes
+        classMap.values.filter { it.name.indexOf('$') == -1 }.forEach { classData ->
+            val mappingFile = output.resolve("${classData.name}.$extension").toAbsolutePath()
+            mappingFile.parent?.let(Files::createDirectories)
+            existingFiles.remove(mappingFile)
+
+            Files.newBufferedWriter(mappingFile).use { writer ->
+                EnigmaWriter.writeClass(writer, 0, classData.name, classData)
+                writeChildMap(writer, classData)
+            }
+        }
+
+        // Delete any remaining files that we didn't write
+        existingFiles.forEach(Files::deleteIfExists)
     }
 
     @Throws(IOException::class)
@@ -131,14 +115,17 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
         input.resolve("info.json").source().buffer().use {
             info = moshi.adapter(DataInfo::class.java).fromJson(it) ?: throw IOException("info.json did not deserialize")
         }
+
         var packages: Collection<PackageData>
         input.resolve("packages.json").source().buffer().use {
             packages = moshi.adapter<Collection<PackageData>>(PACKAGE_COLLECTION_TYPE).fromJson(it) ?: throw IOException("packages.json did not deserialize")
         }
+
         val builder = MappingDataBuilder()
         packages.forEach {
             builder.getOrCreatePackage(it.name).addJavadoc(it.javadoc)
         }
+
         Files.walkFileTree(input, object : SimpleFileVisitor<Path>() {
             @Throws(IOException::class)
             override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
@@ -150,13 +137,12 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
                 return FileVisitResult.CONTINUE
             }
         })
+
         val container = if (mutable) builder else ImmutableMappingDataContainer(builder.packages, builder.classes)
         return VersionedMDCDelegate(info.version ?: throw IllegalArgumentException("info.json version was not set"), container)
     }
 
-    internal class DataInfo {
-        var version: SimpleVersion? = null
-    }
+    data class DataInfo(var version: SimpleVersion? = null)
 
     companion object {
         private val MOSHI = Moshi.Builder()
@@ -168,8 +154,8 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
             .addLast(KotlinJsonAdapterFactory())
             .build()
         val INSTANCE = EnigmaFormattedExplodedIO(MOSHI, "    ", "mapping")
-        internal val DOLLAR_SIGN: CharMatcher = CharMatcher.`is`('$')
-        private val CLASS_NAME_LENGTH_THEN_LEXICOGRAPHICALLY: Comparator<String> = Comparator
+        private val DOLLAR_SIGN: CharMatcher = CharMatcher.`is`('$')
+        internal val CLASS_NAME_LENGTH_THEN_LEXICOGRAPHICALLY: Comparator<String> = Comparator
             .comparingInt { obj: String -> obj.length }
             .thenComparing(Function.identity())
         const val CLASS = "CLASS"
@@ -183,21 +169,13 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
             )
         )
 
-        fun compareClassNames(a: String, b: String): Int {
-            val aComponents = a.split(DOLLAR_SIGN.toString()).toTypedArray()
-            val bComponents = b.split(DOLLAR_SIGN.toString()).toTypedArray()
-            var ret = 0
-            val minimum = aComponents.size.coerceAtMost(bComponents.size)
-            for (i in 0 until minimum) {
-                val aComp = aComponents[i]
-                val bComp = bComponents[i]
-                ret = CLASS_NAME_LENGTH_THEN_LEXICOGRAPHICALLY.compare(aComp, bComp)
-                if (ret != 0) break
+        private fun emptyClassData(classname: String) = ImmutableClassData(classname, emptyList(), emptyList(), emptyList())
+
+        private fun writeChildMap(writer: Writer, classData: ClassData) {
+            classData.childClassMap.values.forEach {
+                EnigmaWriter.writeClass(writer, DOLLAR_SIGN.countIn(it.name), EnigmaWriter.stripToMostInner(it.name), it)
+                writeChildMap(writer, it)
             }
-            if (ret == 0) {
-                ret = CLASS_NAME_LENGTH_THEN_LEXICOGRAPHICALLY.compare(a, b)
-            }
-            return ret
         }
     }
 }

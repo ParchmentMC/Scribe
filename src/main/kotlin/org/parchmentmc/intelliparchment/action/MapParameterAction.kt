@@ -67,9 +67,9 @@ class MapParameterAction : AnAction() {
             InlayHintsPassFactory.forceHintsUpdateOnNextPass()
         }
 
-        @Suppress("UnstableApiUsage")
         if (allSuperMethods.isNotEmpty()) {
             allSuperMethods.add(0, containingMethod)
+            @Suppress("UnstableApiUsage")
             val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod ->
                 val newParam = targetMethod.parameterList.parameters.getOrNull(containingMethod.parameterList.getParameterIndex(parameter)) ?: return@createTargetPopup
                 mapFun(newParam)

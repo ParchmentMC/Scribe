@@ -46,8 +46,8 @@ internal object EnigmaWriter {
 
     fun expandClass(className: String): Set<String> {
         var mutClassName = className
-        if (mutClassName.indexOf('$') == -1) return emptySet()
-        val expandedClasses: MutableSet<String> = LinkedHashSet()
+        if (mutClassName.indexOf('$') == -1) return setOf(mutClassName)
+        val expandedClasses = mutableSetOf<String>()
         var pkg = ""
         val packageSeparator = mutClassName.lastIndexOf('/')
         if (packageSeparator > -1) {
