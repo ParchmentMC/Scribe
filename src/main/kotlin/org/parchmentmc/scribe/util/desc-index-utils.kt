@@ -30,29 +30,36 @@ import com.intellij.psi.PsiParameter
 val PsiParameter.jvmIndex: Byte
     get() {
         val containingMethod = this.declarationScope as? PsiMethod ?: return -1
-        val isStatic = containingMethod.modifierList.hasModifierProperty(PsiModifier.STATIC)
-        val params = containingMethod.qualifiedMemberReference.descriptor?.substringAfter('(')?.substringBefore(')') ?: return -1
         val thisIndex = containingMethod.parameterList.getParameterIndex(this)
-
-        var i = 0
-        var curIndex = 0
-        var jvmIndex: Byte = if (isStatic) 0 else 1
-        var isArray = false
-        while (i < params.length) {
-            if (curIndex == thisIndex)
-                return jvmIndex
-            val c = params[i]
-            when (c) {
-                'D', 'J' -> if (!isArray) jvmIndex++
-                'L' -> i = params.indexOf(';', startIndex = i) // i++ will add one to this
-            }
-            if (!isArray) {
-                jvmIndex++
-                curIndex++
-            }
-            isArray = c == '['
-            i++
-        }
-
-        return -1
+        return containingMethod.iterateJvmIndices { curIndex, curJvmIndex -> if (curIndex == thisIndex) curJvmIndex else null } ?: -1
     }
+
+fun PsiMethod.getParameterByJvmIndex(jvmIndex: Byte): PsiParameter? {
+    return iterateJvmIndices { curIndex, curJvmIndex -> if (curJvmIndex == jvmIndex) this.parameterList.getParameter(curIndex) else null }
+}
+
+private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
+    val isStatic = this.modifierList.hasModifierProperty(PsiModifier.STATIC)
+    val params = this.qualifiedMemberReference.descriptor?.substringAfter('(')?.substringBefore(')') ?: return null
+
+    var i = 0
+    var curIndex = 0
+    var curJvmIndex: Byte = if (isStatic) 0 else 1
+    var isArray = false
+    while (i < params.length) {
+        successFun(curIndex, curJvmIndex)?.let { return it }
+        val c = params[i]
+        when (c) {
+            'D', 'J' -> if (!isArray) curJvmIndex++
+            'L' -> i = params.indexOf(';', startIndex = i) // i++ will add one to this
+        }
+        if (!isArray) {
+            curJvmIndex++
+            curIndex++
+        }
+        isArray = c == '['
+        i++
+    }
+
+    return null
+}

@@ -23,9 +23,7 @@
 
 package org.parchmentmc.scribe.action
 
-import com.intellij.codeInsight.hints.InlayHintsPassFactory
 import com.intellij.codeInsight.navigation.targetPresentation
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.ui.InputValidatorEx
@@ -37,19 +35,12 @@ import com.intellij.util.text.nullize
 import org.parchmentmc.scribe.ParchmentMappings
 import org.parchmentmc.scribe.util.findAllSuperMethods
 
-class MapParameterAction : AnAction() {
-    override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible = ParchmentMappings.mappingContainer != null
-    }
-
+class MapParameterAction : MappingAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val parameter = e.getData(CommonDataKeys.PSI_ELEMENT) as? PsiParameter ?: return
-        val containingMethod = parameter.declarationScope as? PsiMethod ?: return
-        val currentName = ParchmentMappings.getParameterMapping(parameter)
-
-        val allSuperMethods = containingMethod.findAllSuperMethods()
 
         val mapFun = fun(parameter: PsiParameter) {
+            val currentName = ParchmentMappings.getParameterMapping(parameter)
             // Return early if they canceled (null), but then make null if it's empty or only has spaces
             val mapped = (Messages.showInputDialog(
                 e.project, "Enter a new parameter name:", "Map Parameter",
@@ -62,22 +53,10 @@ class MapParameterAction : AnAction() {
 
             parameterData.name = mapped
             ParchmentMappings.modified = true
-
-            @Suppress("UnstableApiUsage")
-            InlayHintsPassFactory.forceHintsUpdateOnNextPass()
+            ParchmentMappings.invalidateHints()
         }
 
-        if (allSuperMethods.isNotEmpty()) {
-            allSuperMethods.add(0, containingMethod)
-            @Suppress("UnstableApiUsage")
-            val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod ->
-                val newParam = targetMethod.parameterList.parameters.getOrNull(containingMethod.parameterList.getParameterIndex(parameter)) ?: return@createTargetPopup
-                mapFun(newParam)
-            }
-            popup.showInBestPositionFor(e.getData(CommonDataKeys.EDITOR) ?: return)
-        } else {
-            mapFun(parameter)
-        }
+        mapParameter(e, parameter, mapFun)
     }
 
     companion object {
@@ -94,6 +73,26 @@ class MapParameterAction : AnAction() {
             }
 
             private fun isValid(inputString: String?) = inputString?.nullize(nullizeSpaces = true)?.let { parameterRegex matches it } ?: true
+        }
+
+        internal fun mapParameter(
+            e: AnActionEvent,
+            parameter: PsiParameter,
+            mapFun: (PsiParameter) -> Unit
+        ) {
+            val containingMethod = parameter.declarationScope as? PsiMethod ?: return
+            val allSuperMethods = containingMethod.findAllSuperMethods()
+            if (allSuperMethods.isNotEmpty()) {
+                allSuperMethods.add(0, containingMethod)
+                @Suppress("UnstableApiUsage")
+                val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod ->
+                    val newParam = targetMethod.parameterList.parameters.getOrNull(containingMethod.parameterList.getParameterIndex(parameter)) ?: return@createTargetPopup
+                    mapFun(newParam)
+                }
+                popup.showInBestPositionFor(e.getData(CommonDataKeys.EDITOR) ?: return)
+            } else {
+                mapFun(parameter)
+            }
         }
     }
 }

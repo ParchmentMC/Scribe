@@ -23,7 +23,6 @@
 
 package org.parchmentmc.scribe.settings
 
-import com.intellij.codeInsight.hints.InlayHintsPassFactory
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.options.SearchableConfigurable
@@ -91,7 +90,7 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
     @Suppress("UnstableApiUsage")
     override fun apply() {
         if (isModified)
-            InlayHintsPassFactory.forceHintsUpdateOnNextPass()
+            ParchmentMappings.invalidateHints()
         val mappingsFolderModified = isModified(mappingsFolderField.textField, settings.mappingsFolder)
         settings.mappingsFolder = mappingsFolderField.text
         if (mappingsFolderModified) {

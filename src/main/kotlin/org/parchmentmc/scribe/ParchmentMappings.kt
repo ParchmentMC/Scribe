@@ -25,6 +25,7 @@ package org.parchmentmc.scribe
 
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
+import com.intellij.codeInsight.hints.InlayHintsPassFactory
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ModuleData
 import com.intellij.psi.PsiJavaFile
@@ -41,6 +42,7 @@ import org.parchmentmc.scribe.gradle.ForgeGradleIntellijModel
 import org.parchmentmc.scribe.io.EnigmaFormattedExplodedIO
 import org.parchmentmc.scribe.settings.ParchmentSettings
 import org.parchmentmc.scribe.util.findGradleModule
+import org.parchmentmc.scribe.util.getParameterByJvmIndex
 import org.parchmentmc.scribe.util.jvmIndex
 import org.parchmentmc.scribe.util.qualifiedMemberReference
 import java.io.IOException
@@ -72,6 +74,8 @@ object ParchmentMappings {
         }
     }
 
+    fun invalidateHints() = @Suppress("UnstableApiUsage") InlayHintsPassFactory.forceHintsUpdateOnNextPass()
+
     fun getParameterMapping(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false) = getParameterData(parameter, create, searchSupers)?.name
 
     fun getParameterData(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false): MappingDataBuilder.MutableParameterData? {
@@ -87,9 +91,9 @@ object ParchmentMappings {
             return methodJavadoc
         val builder = StringBuilder(methodJavadoc)
 
-        for ((index, param) in methodData.parameters.withIndex()) {
-            if (param.javadoc != null) {
-                builder.append("\n@param ${param.name ?: method.parameterList.getParameter(index)?.name ?: continue} ${param.javadoc}")
+        for (paramData in methodData.parameters) {
+            if (paramData.javadoc != null) {
+                builder.append("\n@param ${paramData.name ?: method.getParameterByJvmIndex(paramData.index)?.name ?: continue} ${paramData.javadoc}")
             }
         }
 
@@ -121,6 +125,7 @@ object ParchmentMappings {
     }
 
     fun resetMappingContainer() {
+        modified = false
         val folder = mappingFolderPath
 
         try {
