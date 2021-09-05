@@ -40,7 +40,7 @@ class MapParameterAction : MappingAction() {
         val parameter = e.getData(CommonDataKeys.PSI_ELEMENT) as? PsiParameter ?: return
 
         val mapFun = fun(parameter: PsiParameter) {
-            val currentName = ParchmentMappings.getParameterMapping(parameter)
+            val currentName = ParchmentMappings.getParameterMapping(parameter, searchSupers = true)
             // Return early if they canceled (null), but then make null if it's empty or only has spaces
             val mapped = (Messages.showInputDialog(
                 e.project, "Enter a new parameter name:", "Map Parameter",

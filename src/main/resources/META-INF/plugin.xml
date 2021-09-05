@@ -67,17 +67,11 @@
                 description="Maps a parameter for Parchment and saves it to the mappings folder">
             <add-to-group relative-to-action="EditorPopupMenu2" anchor="after" group-id="EditorPopupMenu"/>
         </action>
-        <action class="org.parchmentmc.scribe.action.MapParameterJavadocAction" id="MapParchmentParameterJavadocAction"
+        <action class="org.parchmentmc.scribe.action.MapJavadocAction" id="MapParchmentJavadocAction"
                 icon="icons/parchment.png"
                 text="Map Parchment Javadoc"
-                description="Maps parameter documentation for Parchment and saves it to the mappings folder">
+                description="Maps documentation for Parchment and saves it to the mappings folder">
             <add-to-group relative-to-action="MapParchmentParameterAction" anchor="after" group-id="EditorPopupMenu"/>
-        </action>
-        <action class="org.parchmentmc.scribe.action.MapMethodJavadocAction" id="MapParchmentMethodJavadocAction"
-                icon="icons/parchment.png"
-                text="Map Method Documentation"
-                description="Maps method documentation for Parchment and saves it to the mappings folder">
-            <add-to-group relative-to-action="MapParchmentParameterJavadocAction" anchor="after" group-id="EditorPopupMenu"/>
         </action>
         <action class="org.parchmentmc.scribe.action.ResetMappingsAction" id="ResetParchmentMappingsAction"
                 icon="icons/parchment.png"

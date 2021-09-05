@@ -47,7 +47,7 @@ class ParchmentHintCollector(editor: Editor) : InlayHintsCollector {
         when (element) {
             is PsiParameterImpl -> {
                 val mapped = ParchmentMappings.getParameterMapping(element, searchSupers = true) ?: return true
-                if (element.name == mapped/* || element.name == "p${mapped.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }}"*/) return true
+                if (element.name == mapped/* || element.name == "p${mapped.capitalize()}"*/) return true
                 val hint = factory.roundWithBackgroundAndSmallInset(factory.text("$mapped:"))
 
                 sink.addInlineElement(
