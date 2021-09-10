@@ -98,6 +98,10 @@ val PsiMethod.descriptor: String?
 @Throws(ClassNameResolutionFailedException::class)
 private fun PsiMethod.appendDescriptor(builder: StringBuilder): StringBuilder {
     builder.append('(')
+    if (this.isEnumConstructor()) {
+        // Append fixed, synthetic parameters for Enum constructors.
+        builder.append("Ljava/lang/String;I")
+    }
     for (parameter in parameterList.parameters) {
         parameter.type.appendDescriptor(builder)
     }
