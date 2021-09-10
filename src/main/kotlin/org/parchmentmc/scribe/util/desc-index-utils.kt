@@ -35,9 +35,11 @@ val PsiParameter.jvmIndex: Byte
     }
 
 fun PsiMethod.getParameterByJvmIndex(jvmIndex: Byte): PsiParameter? {
-    return iterateJvmIndices { curIndex, curJvmIndex -> if (curJvmIndex == jvmIndex) {
-        this.parameterList.getParameter(curIndex - this.getParameterIndexOffset())
-    } else null }
+    return iterateJvmIndices { curIndex, curJvmIndex ->
+        if (curJvmIndex == jvmIndex) {
+            this.parameterList.getParameter(curIndex - this.getParameterIndexOffset())
+        } else null
+    }
 }
 
 private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
@@ -66,13 +68,9 @@ private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
     return null
 }
 
-fun PsiMethod.getParameterIndexOffset(): Int {
-    return when {
-        this.isEnumConstructor() -> 2
-        else -> 0
-    }
+fun PsiMethod.getParameterIndexOffset(): Int = when {
+    this.isEnumConstructor() -> 2
+    else -> 0
 }
 
-fun PsiMethod.isEnumConstructor(): Boolean {
-    return this.isConstructor && this.findContainingClass()?.isEnum == true
-}
+fun PsiMethod.isEnumConstructor(): Boolean = this.isConstructor && this.findContainingClass()?.isEnum == true
