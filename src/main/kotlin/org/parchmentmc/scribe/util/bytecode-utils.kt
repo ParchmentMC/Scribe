@@ -10,13 +10,7 @@
 
 package org.parchmentmc.scribe.util
 
-import com.intellij.psi.PsiArrayType
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiClassType
-import com.intellij.psi.PsiField
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.PsiPrimitiveType
-import com.intellij.psi.PsiType
+import com.intellij.psi.*
 import com.intellij.psi.util.TypeConversionUtil
 
 private const val INTERNAL_CONSTRUCTOR_NAME = "<init>"
@@ -98,6 +92,10 @@ val PsiMethod.descriptor: String?
 @Throws(ClassNameResolutionFailedException::class)
 private fun PsiMethod.appendDescriptor(builder: StringBuilder): StringBuilder {
     builder.append('(')
+    if (this.isEnumConstructor()) {
+        // Append fixed, synthetic parameters for Enum constructors.
+        builder.append("Ljava/lang/String;I")
+    }
     for (parameter in parameterList.parameters) {
         parameter.type.appendDescriptor(builder)
     }

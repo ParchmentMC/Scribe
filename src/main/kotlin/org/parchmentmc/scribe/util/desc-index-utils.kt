@@ -30,12 +30,14 @@ import com.intellij.psi.PsiParameter
 val PsiParameter.jvmIndex: Byte
     get() {
         val containingMethod = this.declarationScope as? PsiMethod ?: return -1
-        val thisIndex = containingMethod.parameterList.getParameterIndex(this)
+        val thisIndex = containingMethod.getParameterIndexOffset() + containingMethod.parameterList.getParameterIndex(this)
         return containingMethod.iterateJvmIndices { curIndex, curJvmIndex -> if (curIndex == thisIndex) curJvmIndex else null } ?: -1
     }
 
 fun PsiMethod.getParameterByJvmIndex(jvmIndex: Byte): PsiParameter? {
-    return iterateJvmIndices { curIndex, curJvmIndex -> if (curJvmIndex == jvmIndex) this.parameterList.getParameter(curIndex) else null }
+    return iterateJvmIndices { curIndex, curJvmIndex -> if (curJvmIndex == jvmIndex) {
+        this.parameterList.getParameter(curIndex - this.getParameterIndexOffset())
+    } else null }
 }
 
 private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
@@ -62,4 +64,15 @@ private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
     }
 
     return null
+}
+
+fun PsiMethod.getParameterIndexOffset(): Int {
+    return when {
+        this.isEnumConstructor() -> 2
+        else -> 0
+    }
+}
+
+fun PsiMethod.isEnumConstructor(): Boolean {
+    return this.isConstructor && this.findContainingClass()?.isEnum == true
 }
