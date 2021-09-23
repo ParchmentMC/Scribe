@@ -45,7 +45,7 @@ class ForgeGradleModelBuilder implements ModelBuilderService {
         if (mcExtension == null || task == null)
             return null
 
-        def mappingVersion = (mcExtension.mappingVersion as Provider)?.get() ?: mcExtension.mappingVersion
+        def mappingVersion = mcExtension.mappingVersion instanceof Provider ? mcExtension.mappingVersion.get() : mcExtension.mappingVersion
         if (!(mappingVersion instanceof String))
             return null
         def taskOutput = task.outputs.files.singleFile
