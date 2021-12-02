@@ -43,6 +43,7 @@ intellij {
 
     downloadSources = true
     updateSinceUntilBuild = true
+    patchPluginXml.untilBuild = "213.*"
     plugins = ['java', 'gradle']
     sandboxDir = layout.projectDirectory.dir(".sandbox").toString()
 }
