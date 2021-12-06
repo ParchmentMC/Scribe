@@ -40,17 +40,13 @@ class ForgeGradleModelBuilder implements ModelBuilderService {
 
     @Override
     ForgeGradleModel buildAll(String modelName, Project project) {
-        def mcExtension = project?.extensions?.findByName("minecraft")
         def task = project.tasks.findByName("extractSrg")
-        if (mcExtension == null || task == null)
+        if (task == null)
             return null
 
-        def mappingVersion = mcExtension.mappingVersion instanceof Provider ? mcExtension.mappingVersion.get() : mcExtension.mappingVersion
-        if (!(mappingVersion instanceof String))
-            return null
+        def mcVersion = project.extensions.extraProperties.get("MC_VERSION")
         def taskOutput = task.outputs.files.singleFile
-        def mcVersion = getMCVersion(mappingVersion)
-        if (mcVersion == null || taskOutput == null)
+        if (!(mcVersion instanceof String) || taskOutput == null)
             return null
 
         return new ForgeGradleModelImpl(mcVersion, task.name, taskOutput, getClientMappings(project, mcVersion))
@@ -61,14 +57,6 @@ class ForgeGradleModelBuilder implements ModelBuilderService {
         return ErrorMessageBuilder.create(
                 project, e, "Parchment ForgeGradle errors"
         ).withDescription("Unable to integrate Parchment with ForgeGradle")
-    }
-
-    private static String getMCVersion(String version) {
-        int idx = version.lastIndexOf('-')
-        if (idx != -1 && MCP_CONFIG_VERSION.matcher(version.substring(idx + 1)).matches()) {
-            return version.substring(0, idx)
-        }
-        return version
     }
 
     private static File getClientMappings(Project project, String mcVersion) {
