@@ -27,6 +27,7 @@ import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ModuleData
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.util.containers.nullize
+import net.minecraftforge.srgutils.MinecraftVersion
 import org.gradle.tooling.model.idea.IdeaModule
 import org.jetbrains.plugins.gradle.service.project.AbstractProjectResolverExtension
 import org.parchmentmc.scribe.util.runGradleTask
@@ -53,7 +54,7 @@ class ForgeGradleProjectResolverExtension : AbstractProjectResolverExtension() {
     private fun findAllTaskNames(node: DataNode<*>): List<String> {
         fun findAllTaskNames(node: DataNode<*>, taskNames: MutableList<String>) {
             val data = node.data
-            if (data is ForgeGradleIntellijModel) {
+            if (data is ForgeGradleIntellijModel && MinecraftVersion.from(data.mcVersion) < MC_1_17) {
                 taskNames += data.extractSrgTaskName
             }
             for (child in node.children) {
@@ -70,5 +71,9 @@ class ForgeGradleProjectResolverExtension : AbstractProjectResolverExtension() {
         ForgeGradleModelHandler.build(gradleModule, ideModule, resolverCtx)
 
         super.populateModuleExtraModels(gradleModule, ideModule)
+    }
+
+    companion object {
+        val MC_1_17 = MinecraftVersion.from("1.17")
     }
 }
