@@ -25,7 +25,6 @@ package org.parchmentmc.scribe.io
 
 import org.parchmentmc.feather.mapping.MappingDataContainer
 import java.io.IOException
-import java.io.Writer
 import java.util.TreeSet
 
 // Helper package-only class, to separate writing
@@ -63,7 +62,7 @@ internal object EnigmaWriter {
     }
 
     @Throws(IOException::class)
-    fun indent(writer: Writer, indent: Int): Writer {
+    fun indent(writer: StringBuilder, indent: Int): StringBuilder {
         for (i in 0 until indent) {
             writer.append('\t')
         }
@@ -71,12 +70,12 @@ internal object EnigmaWriter {
     }
 
     @Throws(IOException::class)
-    fun writeClass(writer: Writer, indent: Int, name: String?, data: MappingDataContainer.ClassData) {
-        indent(writer, indent).append(EnigmaFormattedExplodedIO.CLASS).append(' ').append(name).append('\n')
+    fun writeClass(writer: StringBuilder, newline: String, indent: Int, name: String?, data: MappingDataContainer.ClassData) {
+        indent(writer, indent).append(EnigmaFormattedExplodedIO.CLASS).append(' ').append(name).append(newline)
         val memberIndent = indent + 1
         val javadocIndent = indent + 2
         for (javadoc in data.javadoc) {
-            writeComment(writer, memberIndent, javadoc)
+            writeComment(writer, newline, memberIndent, javadoc)
         }
         val fieldDataComparator = Comparator
             .comparing { s: MappingDataContainer.FieldData -> s.name + s.descriptor }
@@ -84,36 +83,36 @@ internal object EnigmaWriter {
         fields.addAll(data.fields)
         for (field in fields) {
             indent(writer, memberIndent).append(EnigmaFormattedExplodedIO.FIELD).append(' ')
-                .append(field.name).append(' ').append(field.descriptor).append('\n')
+                .append(field.name).append(' ').append(field.descriptor).append(newline)
             for (javadoc in field.javadoc) {
-                writeComment(writer, javadocIndent, javadoc)
+                writeComment(writer, newline, javadocIndent, javadoc)
             }
         }
         for (method in data.methods) {
             indent(writer, memberIndent).append(EnigmaFormattedExplodedIO.METHOD).append(' ')
-                .append(method.name).append(' ').append(method.descriptor).append('\n')
+                .append(method.name).append(' ').append(method.descriptor).append(newline)
             for (javadoc in method.javadoc) {
-                writeComment(writer, javadocIndent, javadoc)
+                writeComment(writer, newline, javadocIndent, javadoc)
             }
             val paramIndent = memberIndent + 1
             for (param in method.parameters) {
                 if (param.name == null) continue  // Skip non-named parameters
                 indent(writer, paramIndent).append(EnigmaFormattedExplodedIO.PARAM).append(' ')
                     .append(param.index.toString()).append(' ').append(param.name)
-                    .append('\n')
+                    .append(newline)
                 param.javadoc?.let {
-                    writeComment(writer, paramIndent + 1, it)
+                    writeComment(writer, newline, paramIndent + 1, it)
                 }
             }
         }
     }
 
     @Throws(IOException::class)
-    fun writeComment(writer: Writer, indent: Int, comment: String) {
+    fun writeComment(writer: StringBuilder, newline: String, indent: Int, comment: String) {
         indent(writer, indent).append(EnigmaFormattedExplodedIO.COMMENT)
         if (comment.isNotEmpty()) {
             writer.append(' ').append(comment)
         }
-        writer.append('\n')
+        writer.append(newline)
     }
 }

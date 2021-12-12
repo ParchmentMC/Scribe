@@ -44,7 +44,6 @@ import org.parchmentmc.feather.mapping.VersionedMDCDelegate
 import org.parchmentmc.feather.mapping.VersionedMappingDataContainer
 import org.parchmentmc.feather.util.SimpleVersion
 import java.io.IOException
-import java.io.Writer
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
@@ -99,10 +98,14 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
             mappingFile.parent?.let(Files::createDirectories)
             existingFiles.remove(mappingFile)
 
-            Files.newBufferedWriter(mappingFile).use { writer ->
-                EnigmaWriter.writeClass(writer, 0, classData.name, classData)
-                writeChildMap(writer, classData)
-            }
+            val currentData = if (Files.exists(mappingFile)) String(Files.readAllBytes(mappingFile)) else ""
+            val newline = if (currentData.contains('\r')) "\r\n" else "\n"
+            val builder = StringBuilder()
+            EnigmaWriter.writeClass(builder, newline, 0, classData.name, classData)
+            writeChildMap(builder, newline, classData)
+            val newData = builder.toString()
+            if (currentData != newData)
+                Files.write(mappingFile, newData.toByteArray())
         }
 
         // Delete any remaining files that we didn't write
@@ -171,10 +174,10 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
 
         private fun emptyClassData(classname: String) = ImmutableClassData(classname, emptyList(), emptyList(), emptyList())
 
-        private fun writeChildMap(writer: Writer, classData: ClassData) {
+        private fun writeChildMap(builder: StringBuilder, newline: String, classData: ClassData) {
             classData.childClassMap.values.forEach {
-                EnigmaWriter.writeClass(writer, DOLLAR_SIGN.countIn(it.name), EnigmaWriter.stripToMostInner(it.name), it)
-                writeChildMap(writer, it)
+                EnigmaWriter.writeClass(builder, newline, DOLLAR_SIGN.countIn(it.name), EnigmaWriter.stripToMostInner(it.name), it)
+                writeChildMap(builder, newline, it)
             }
         }
     }
