@@ -23,6 +23,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiType
+import com.intellij.psi.util.InheritanceUtil
 import com.intellij.psi.util.TypeConversionUtil
 import org.jetbrains.plugins.gradle.util.GradleUtil
 
@@ -116,6 +117,25 @@ fun PsiMethod.findAllSuperMethods(): MutableList<PsiMethod> {
             all.add(it)
             toFind.add(it)
         }
+    }
+
+    return all
+}
+
+fun PsiMethod.findAllSuperConstructors(): MutableList<PsiMethod> {
+    val all = mutableListOf<PsiMethod>()
+    val memberRef = this.qualifiedMemberReference
+
+    this.containingClass?.let {
+        val results = mutableSetOf<PsiClass>()
+        InheritanceUtil.getSuperClasses(it, results, true)
+        results
+    }?.flatMap {
+        it.constructors.toList()
+    }?.filter {
+        it.qualifiedMemberReference.descriptor == memberRef.descriptor
+    }?.let {
+        all.addAll(it)
     }
 
     return all

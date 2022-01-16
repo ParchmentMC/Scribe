@@ -46,6 +46,7 @@ import org.parchmentmc.scribe.gradle.ForgeGradleIntellijModel
 import org.parchmentmc.scribe.io.EnigmaFormattedExplodedIO
 import org.parchmentmc.scribe.settings.ParchmentSettings
 import org.parchmentmc.scribe.util.MemberReference
+import org.parchmentmc.scribe.util.findAllSuperConstructors
 import org.parchmentmc.scribe.util.findGradleModule
 import org.parchmentmc.scribe.util.fullQualifiedName
 import org.parchmentmc.scribe.util.getParameterByJvmIndex
@@ -116,15 +117,7 @@ object ParchmentMappings {
 
         if (methodData == null && !create && searchSupers) {
             if (method.isConstructor) {
-                method.containingClass?.let {
-                    val results = mutableSetOf<PsiClass>()
-                    InheritanceUtil.getSuperClasses(it, results, true)
-                    results
-                }?.flatMap {
-                    it.constructors.toList()
-                }?.filter {
-                    it.qualifiedMemberReference.descriptor == memberRef.descriptor
-                }?.forEach { superConstructor ->
+                method.findAllSuperConstructors().forEach { superConstructor ->
                     // Return if not null
                     getMethodData(superConstructor, create, searchSupers)?.let { return it }
                 }

@@ -33,6 +33,7 @@ import com.intellij.psi.PsiParameter
 import com.intellij.ui.list.createTargetPopup
 import com.intellij.util.text.nullize
 import org.parchmentmc.scribe.ParchmentMappings
+import org.parchmentmc.scribe.util.findAllSuperConstructors
 import org.parchmentmc.scribe.util.findAllSuperMethods
 
 class MapParameterAction : MappingAction() {
@@ -81,7 +82,11 @@ class MapParameterAction : MappingAction() {
             mapFun: (PsiParameter) -> Unit
         ) {
             val containingMethod = parameter.declarationScope as? PsiMethod ?: return
-            val allSuperMethods = containingMethod.findAllSuperMethods()
+            val allSuperMethods = if (containingMethod.isConstructor) {
+                containingMethod.findAllSuperConstructors()
+            } else {
+                containingMethod.findAllSuperMethods()
+            }
             if (allSuperMethods.isNotEmpty()) {
                 allSuperMethods.add(0, containingMethod)
                 @Suppress("UnstableApiUsage")
