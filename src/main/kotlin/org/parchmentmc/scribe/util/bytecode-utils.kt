@@ -101,6 +101,8 @@ private fun PsiMethod.appendDescriptor(builder: StringBuilder): StringBuilder {
     if (this.isEnumConstructor()) {
         // Append fixed, synthetic parameters for Enum constructors.
         builder.append("Ljava/lang/String;I")
+    } else if (this.hasSyntheticOuterClassParameter()) {
+        this.containingClass?.containingClass?.appendInternalName(builder.append('L'))?.append(';')
     }
     for (parameter in parameterList.parameters) {
         parameter.type.appendDescriptor(builder)

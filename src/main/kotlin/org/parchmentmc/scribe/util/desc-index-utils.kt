@@ -35,15 +35,16 @@ val PsiParameter.jvmIndex: Byte
     }
 
 fun PsiMethod.getParameterByJvmIndex(jvmIndex: Byte): PsiParameter? {
+    val offset = this.getParameterIndexOffset()
     return iterateJvmIndices { curIndex, curJvmIndex ->
         if (curJvmIndex == jvmIndex) {
-            this.parameterList.getParameter(curIndex - this.getParameterIndexOffset())
+            this.parameterList.getParameter(curIndex - offset)
         } else null
     }
 }
 
 private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
-    val isStatic = this.modifierList.hasModifierProperty(PsiModifier.STATIC)
+    val isStatic = this.hasModifierProperty(PsiModifier.STATIC)
     val params = this.qualifiedMemberReference.descriptor?.substringAfter('(')?.substringBefore(')') ?: return null
 
     var i = 0
@@ -70,7 +71,10 @@ private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
 
 fun PsiMethod.getParameterIndexOffset(): Int = when {
     this.isEnumConstructor() -> 2
+    this.hasSyntheticOuterClassParameter() -> 1
     else -> 0
 }
 
 fun PsiMethod.isEnumConstructor(): Boolean = this.isConstructor && this.findContainingClass()?.isEnum == true
+
+fun PsiMethod.hasSyntheticOuterClassParameter(): Boolean = this.isConstructor && this.containingClass?.containingClass != null && !this.containingClass!!.hasModifierProperty(PsiModifier.STATIC)
