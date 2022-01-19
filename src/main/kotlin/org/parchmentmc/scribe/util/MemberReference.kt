@@ -12,6 +12,7 @@ package org.parchmentmc.scribe.util
 
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiField
+import com.intellij.psi.PsiLambdaExpression
 import com.intellij.psi.PsiMethod
 import java.io.Serializable
 
@@ -53,7 +54,16 @@ fun PsiMethod.getQualifiedMemberReference(owner: PsiClass): MemberReference {
 fun PsiMethod?.isSameReference(reference: PsiMethod?): Boolean =
     this != null && (this === reference || qualifiedMemberReference == reference?.qualifiedMemberReference)
 
+// Lambda
+
+val PsiLambdaExpression.memberReference
+    get() = internalName?.let { MemberReference(it, descriptor) }
+
+val PsiLambdaExpression.qualifiedMemberReference
+    get() = internalName?.let { MemberReference(it, descriptor, findContainingClass()?.fullQualifiedName) }
+
 // Field
+
 val PsiField.simpleMemberReference
     get() = MemberReference(name)
 

@@ -22,6 +22,15 @@ import com.intellij.psi.PsiParameterList
 import com.intellij.psi.PsiPrimitiveType
 import com.intellij.psi.PsiTypeParameter
 import com.intellij.psi.search.GlobalSearchScope
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.ClassNode
+import java.lang.reflect.Method
+
+private val LOAD_CLASS_FILE_BYTES: Method? = runCatching {
+    com.intellij.byteCodeViewer.ByteCodeViewerManager::class.java
+        .getDeclaredMethod("loadClassFileBytes", PsiClass::class.java)
+        .let { it.isAccessible = true; it }
+}.getOrNull()
 
 // Type
 
@@ -41,6 +50,15 @@ val PsiClass.fullQualifiedName
             null
         }
     }
+
+fun PsiClass.findClassBytes() = LOAD_CLASS_FILE_BYTES?.invoke(null, this) as? ByteArray
+
+fun PsiClass.findClassNode(): ClassNode? {
+    val bytes = findClassBytes() ?: return null
+    val classNode = ClassNode()
+    ClassReader(bytes).accept(classNode, 0)
+    return classNode
+}
 
 @Throws(ClassNameResolutionFailedException::class)
 private fun PsiClass.buildQualifiedName(builder: StringBuilder): StringBuilder {

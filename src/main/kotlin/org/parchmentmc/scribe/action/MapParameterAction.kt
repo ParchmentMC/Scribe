@@ -81,20 +81,24 @@ class MapParameterAction : MappingAction() {
             parameter: PsiParameter,
             mapFun: (PsiParameter) -> Unit
         ) {
-            val containingMethod = parameter.declarationScope as? PsiMethod ?: return
-            val allSuperMethods = if (containingMethod.isConstructor) {
-                containingMethod.findAllSuperConstructors()
-            } else {
-                containingMethod.findAllSuperMethods()
-            }
-            if (allSuperMethods.isNotEmpty()) {
-                allSuperMethods.add(0, containingMethod)
-                @Suppress("UnstableApiUsage")
-                val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod ->
-                    val newParam = targetMethod.parameterList.parameters.getOrNull(containingMethod.parameterList.getParameterIndex(parameter)) ?: return@createTargetPopup
-                    mapFun(newParam)
+            val declarationScope = parameter.declarationScope
+            if (declarationScope is PsiMethod) {
+                val allSuperMethods = if (declarationScope.isConstructor) {
+                    declarationScope.findAllSuperConstructors()
+                } else {
+                    declarationScope.findAllSuperMethods()
                 }
-                popup.showInBestPositionFor(e.getData(CommonDataKeys.EDITOR) ?: return)
+                if (allSuperMethods.isNotEmpty()) {
+                    allSuperMethods.add(0, declarationScope)
+                    @Suppress("UnstableApiUsage")
+                    val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod ->
+                        val newParam = targetMethod.parameterList.parameters.getOrNull(declarationScope.parameterList.getParameterIndex(parameter)) ?: return@createTargetPopup
+                        mapFun(newParam)
+                    }
+                    popup.showInBestPositionFor(e.getData(CommonDataKeys.EDITOR) ?: return)
+                } else {
+                    mapFun(parameter)
+                }
             } else {
                 mapFun(parameter)
             }

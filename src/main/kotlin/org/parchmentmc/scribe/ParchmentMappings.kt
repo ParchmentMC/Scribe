@@ -32,9 +32,9 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiJavaFile
+import com.intellij.psi.PsiLambdaExpression
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiParameter
-import com.intellij.psi.util.InheritanceUtil
 import com.intellij.util.io.isDirectory
 import com.intellij.util.text.nullize
 import net.minecraftforge.srgutils.IMappingBuilder
@@ -86,8 +86,12 @@ object ParchmentMappings {
     fun getParameterMapping(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false) = getParameterData(parameter, create, searchSupers)?.name
 
     fun getParameterData(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false): MappingDataBuilder.MutableParameterData? {
-        val containingMethod = parameter.declarationScope as? PsiMethod ?: return null
-        val methodData = getMethodData(containingMethod, create = create, searchSupers = searchSupers) ?: return null
+        val methodData = when (val declarationScope = parameter.declarationScope) {
+            is PsiMethod -> getMethodData(declarationScope, create = create, searchSupers = searchSupers)
+            is PsiLambdaExpression -> getMethodData(declarationScope, create = create)
+            else -> null
+        } ?: return null
+
         return if (create) methodData.getOrCreateParameter(parameter.jvmIndex) else methodData.getParameter(parameter.jvmIndex)
     }
 
@@ -105,6 +109,16 @@ object ParchmentMappings {
         }
 
         return builder.toString()
+    }
+
+    fun getMethodData(lambda: PsiLambdaExpression, create: Boolean = false): MappingDataBuilder.MutableMethodData? {
+        if (mappingContainer == null)
+            return null
+        val memberRef = lambda.qualifiedMemberReference ?: return null
+
+        return getClassMemberData(memberRef, lambda, create, IMappingFile.IClass::remapMethod) { classData, methodName, methodDesc ->
+            if (create) classData.getOrCreateMethod(methodName, methodDesc) else classData.getMethod(methodName, methodDesc)
+        }
     }
 
     fun getMethodData(method: PsiMethod, create: Boolean = false, searchSupers: Boolean = false): MappingDataBuilder.MutableMethodData? {

@@ -43,6 +43,7 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.java</depends>
     <depends>com.intellij.gradle</depends>
+    <depends>ByteCodeViewer</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.inlayProvider language="JAVA" implementationClass="org.parchmentmc.scribe.hints.ParchmentHintProvider"/>

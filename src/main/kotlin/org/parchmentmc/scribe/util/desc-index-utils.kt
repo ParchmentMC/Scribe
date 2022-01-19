@@ -23,15 +23,25 @@
 
 package org.parchmentmc.scribe.util
 
+import com.intellij.psi.PsiLambdaExpression
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiParameter
+import org.objectweb.asm.Type
 
 val PsiParameter.jvmIndex: Byte
     get() {
-        val containingMethod = this.declarationScope as? PsiMethod ?: return -1
-        val thisIndex = containingMethod.getParameterIndexOffset() + containingMethod.parameterList.getParameterIndex(this)
-        return containingMethod.iterateJvmIndices { curIndex, curJvmIndex -> if (curIndex == thisIndex) curJvmIndex else null } ?: -1
+        return when (val declarationScope = this.declarationScope) {
+            is PsiMethod -> {
+                val thisIndex = declarationScope.getParameterIndexOffset() + declarationScope.parameterList.getParameterIndex(this)
+                declarationScope.iterateJvmIndices { curIndex, curJvmIndex -> if (curIndex == thisIndex) curJvmIndex else null } ?: -1
+            }
+            is PsiLambdaExpression -> {
+                val thisIndex = declarationScope.getParameterIndexOffset() + declarationScope.parameterList.getParameterIndex(this)
+                declarationScope.iterateJvmIndices { curIndex, curJvmIndex -> if (curIndex == thisIndex) curJvmIndex else null } ?: -1
+            }
+            else -> -1
+        }
     }
 
 fun PsiMethod.getParameterByJvmIndex(jvmIndex: Byte): PsiParameter? {
@@ -44,8 +54,15 @@ fun PsiMethod.getParameterByJvmIndex(jvmIndex: Byte): PsiParameter? {
 }
 
 private fun <T> PsiMethod.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
-    val isStatic = this.hasModifierProperty(PsiModifier.STATIC)
-    val params = this.qualifiedMemberReference.descriptor?.substringAfter('(')?.substringBefore(')') ?: return null
+    return iterateJvmIndices<T>(hasModifierProperty(PsiModifier.STATIC), this.qualifiedMemberReference, successFun)
+}
+
+private fun <T> PsiLambdaExpression.iterateJvmIndices(successFun: (Int, Byte) -> T?): T? {
+    return this.qualifiedMemberReference?.let { iterateJvmIndices<T>(this.isStatic ?: true, it, successFun) }
+}
+
+private fun <T> iterateJvmIndices(isStatic: Boolean, memberRef: MemberReference, successFun: (Int, Byte) -> T?): T? {
+    val params = memberRef.descriptor?.substringAfter('(')?.substringBefore(')') ?: return null
 
     var i = 0
     var curIndex = 0
@@ -74,6 +91,8 @@ fun PsiMethod.getParameterIndexOffset(): Int = when {
     this.hasSyntheticOuterClassParameter() -> 1
     else -> 0
 }
+
+fun PsiLambdaExpression.getParameterIndexOffset(): Int = Type.getArgumentsAndReturnSizes(this.descriptor).shr(2) - Type.getArgumentsAndReturnSizes(this.basicDescriptor).shr(2)
 
 fun PsiMethod.isEnumConstructor(): Boolean = this.isConstructor && this.findContainingClass()?.isEnum == true
 
