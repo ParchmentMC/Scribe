@@ -27,6 +27,8 @@ import com.intellij.codeInsight.MethodImplementor
 import com.intellij.codeInsight.generation.GenerateMembersUtil
 import com.intellij.codeInsight.generation.GenerationInfo
 import com.intellij.codeInsight.generation.OverrideImplementUtil
+import com.intellij.codeInsight.generation.PsiGenerationInfo
+import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.psi.PsiAnnotationMethod
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
@@ -38,15 +40,20 @@ import com.intellij.psi.PsiVariable
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.TypeConversionUtil
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.rename.RenamePsiElementProcessor
 import com.intellij.util.Consumer
 import org.parchmentmc.scribe.ParchmentMappings
+import org.parchmentmc.scribe.settings.ParchmentSettings
 import org.parchmentmc.scribe.util.jvmIndex
 
 class ParchmentMethodImplementor : MethodImplementor {
+    private val settings = ParchmentSettings.instance
+
     override fun getMethodsToImplement(aClass: PsiClass?): Array<PsiMethod> = PsiMethod.EMPTY_ARRAY
 
     override fun createImplementationPrototypes(inClass: PsiClass, method: PsiMethod): Array<PsiMethod> {
-        if (method.parameterList.parameters.isEmpty())
+        if (!settings.remapParameters || method.parameterList.parameters.isEmpty())
             return PsiMethod.EMPTY_ARRAY
         val methodData = ParchmentMappings.getMethodData(method, searchSupers = true) ?: return PsiMethod.EMPTY_ARRAY
 
@@ -87,7 +94,40 @@ class ParchmentMethodImplementor : MethodImplementor {
         return PsiTreeUtil.releaseMark(copy, marker)
     }
 
-    override fun createGenerationInfo(method: PsiMethod, mergeIfExists: Boolean): GenerationInfo? = null
+    override fun createGenerationInfo(method: PsiMethod, mergeIfExists: Boolean): GenerationInfo? {
+        if (!settings.remapParameters || !method.isConstructor)
+            return null
+
+        return object : PsiGenerationInfo<PsiMethod>(method) {
+            override fun insert(targetClass: PsiClass, anchor: PsiElement?, before: Boolean) {
+                super.insert(targetClass, anchor, before)
+
+                val insertedMethod = this.psiMember ?: return
+                val methodData = ParchmentMappings.getMethodData(insertedMethod, searchSupers = true) ?: return
+                val parameters = insertedMethod.parameterList.parameters
+                val project = insertedMethod.project
+
+                parameters.forEachIndexed { index, parameter ->
+                    val paramName = methodData.getParameter(parameter.jvmIndex)?.name ?: return@forEachIndexed
+                    (parameters.getOrNull(index) as? PsiVariable)?.let {
+                        val processor = RenamePsiElementProcessor.forElement(it)
+                        val substituted: PsiElement? = processor.substituteElementToRename(it, null)
+                        if (substituted == null || !PsiElementRenameHandler.canRename(project, null, substituted))
+                            return@let
+
+                        val dialog = processor.createRenameDialog(project, substituted, null, null)
+
+                        try {
+                            dialog.setPreviewResults(false)
+                            dialog.performRename(paramName)
+                        } finally {
+                            dialog.close(DialogWrapper.CANCEL_EXIT_CODE) // to avoid dialog leak
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     override fun createDecorator(targetClass: PsiClass, baseMethod: PsiMethod, toCopyJavaDoc: Boolean, insertOverrideIfPossible: Boolean): Consumer<PsiMethod> =
         OverrideImplementUtil.createDefaultDecorator(targetClass, baseMethod, toCopyJavaDoc, insertOverrideIfPossible)

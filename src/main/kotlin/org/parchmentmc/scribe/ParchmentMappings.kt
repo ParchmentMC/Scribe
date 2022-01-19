@@ -50,6 +50,7 @@ import org.parchmentmc.scribe.util.findAllSuperConstructors
 import org.parchmentmc.scribe.util.findGradleModule
 import org.parchmentmc.scribe.util.fullQualifiedName
 import org.parchmentmc.scribe.util.getParameterByJvmIndex
+import org.parchmentmc.scribe.util.getQualifiedMemberReference
 import org.parchmentmc.scribe.util.jvmIndex
 import org.parchmentmc.scribe.util.qualifiedMemberReference
 import java.io.IOException
@@ -133,12 +134,12 @@ object ParchmentMappings {
             if (method.isConstructor) {
                 method.findAllSuperConstructors().forEach { superConstructor ->
                     // Return if not null
-                    getMethodData(superConstructor, create, searchSupers)?.let { return it }
+                    getMethodData(superConstructor, create = false, searchSupers = false)?.let { return it }
                 }
             } else {
                 method.findSuperMethods().forEach { superMethod ->
                     // Return if not null
-                    getMethodData(superMethod, create, searchSupers)?.let { return it }
+                    getMethodData(superMethod, create = false, searchSupers = false)?.let { return it }
                 }
             }
         }

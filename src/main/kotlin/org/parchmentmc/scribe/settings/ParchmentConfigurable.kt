@@ -38,6 +38,7 @@ import javax.swing.JCheckBox
 class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), SearchableConfigurable {
     private lateinit var mappingsFolderField: TextFieldWithBrowseButton
     private lateinit var displayHintsCheckbox: JCheckBox
+    private lateinit var remapParametersCheckbox: JCheckBox
     private val settings = ParchmentSettings.instance
 
     override fun getDisplayName(): String = "Parchment Settings"
@@ -76,15 +77,27 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
                 ).component
             }
         }
+        row {
+            cell {
+                remapParametersCheckbox = checkBox(
+                    "Remap Parameters",
+                    isSelected = settings.remapParameters,
+                    comment = "Determines whether Scribe should automatically remap parameters when inserting constructors and overrides."
+                ).component
+            }
+        }
     }
 
     override fun reset() {
         mappingsFolderField.textField.text = settings.mappingsFolder
         displayHintsCheckbox.isSelected = settings.displayHints
+        remapParametersCheckbox.isSelected = settings.remapParameters
     }
 
     override fun isModified(): Boolean {
-        return isModified(mappingsFolderField.textField, settings.mappingsFolder) || isModified(displayHintsCheckbox, settings.displayHints)
+        return isModified(mappingsFolderField.textField, settings.mappingsFolder)
+                || isModified(displayHintsCheckbox, settings.displayHints)
+                || isModified(remapParametersCheckbox, settings.remapParameters)
     }
 
     @Suppress("UnstableApiUsage")
@@ -101,6 +114,7 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
             }
         }
         settings.displayHints = displayHintsCheckbox.isSelected
+        settings.remapParameters = remapParametersCheckbox.isSelected
     }
 
     companion object {

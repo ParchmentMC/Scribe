@@ -122,19 +122,18 @@ fun PsiMethod.findAllSuperMethods(): MutableList<PsiMethod> {
     return all
 }
 
-fun PsiMethod.findAllSuperConstructors(): MutableList<PsiMethod> {
-    val all = mutableListOf<PsiMethod>()
-    val memberRef = this.qualifiedMemberReference
+fun PsiMethod.findAllSuperConstructors(): MutableList<PsiMethod> = this.descriptor?.let { this.containingClass?.findAllSuperConstructors(it) } ?: mutableListOf()
 
-    this.containingClass?.let {
-        val results = mutableSetOf<PsiClass>()
-        InheritanceUtil.getSuperClasses(it, results, true)
-        results
-    }?.flatMap {
+fun PsiClass.findAllSuperConstructors(descriptor: String): MutableList<PsiMethod> {
+    val all = mutableListOf<PsiMethod>()
+
+    val superClasses = mutableSetOf<PsiClass>()
+    InheritanceUtil.getSuperClasses(this, superClasses, true)
+    superClasses.flatMap {
         it.constructors.toList()
-    }?.filter {
-        it.qualifiedMemberReference.descriptor == memberRef.descriptor
-    }?.let {
+    }.filter {
+        it.descriptor == descriptor
+    }.let {
         all.addAll(it)
     }
 

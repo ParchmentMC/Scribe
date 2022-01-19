@@ -32,7 +32,8 @@ import com.intellij.openapi.components.Storage
 class ParchmentSettings : PersistentStateComponent<ParchmentSettings.State> {
     data class State(
         var mappingsFolder: String = "",
-        var displayHints: Boolean = true
+        var displayHints: Boolean = true,
+        var remapParameters: Boolean = true
     )
 
     private var state = State()
@@ -56,6 +57,12 @@ class ParchmentSettings : PersistentStateComponent<ParchmentSettings.State> {
         get() = state.displayHints
         set(value) {
             state.displayHints = value
+        }
+
+    var remapParameters: Boolean
+        get() = state.remapParameters
+        set(value) {
+            state.remapParameters = value
         }
 
     companion object {
