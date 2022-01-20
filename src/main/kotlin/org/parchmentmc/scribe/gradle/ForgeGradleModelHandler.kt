@@ -28,6 +28,7 @@ import com.intellij.openapi.externalSystem.model.project.ModuleData
 import org.gradle.tooling.model.idea.IdeaModule
 import org.jetbrains.plugins.gradle.model.data.GradleSourceSetData
 import org.jetbrains.plugins.gradle.service.project.ProjectResolverContext
+import org.parchmentmc.scribe.ParchmentMappings
 
 object ForgeGradleModelHandler {
     fun build(gradleModule: IdeaModule, ideModule: DataNode<ModuleData>, resolverCtx: ProjectResolverContext) {
@@ -39,6 +40,7 @@ object ForgeGradleModelHandler {
 
         val modelData = ForgeGradleIntellijModel(ideModule.data, data.getMcVersion(), taskName, data.getExtractSrgTaskOutput(), data.getClientMappings())
         ideModule.createChild(ForgeGradleIntellijModel.KEY, modelData)
+        ParchmentMappings.invalidateHints()
 
         for (child in ideModule.children) {
             val childData = child.data

@@ -28,6 +28,7 @@ import com.intellij.codeInsight.generation.GenerateMembersUtil
 import com.intellij.codeInsight.generation.GenerationInfo
 import com.intellij.codeInsight.generation.OverrideImplementUtil
 import com.intellij.codeInsight.generation.PsiGenerationInfo
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.psi.PsiAnnotationMethod
 import com.intellij.psi.PsiClass
@@ -115,13 +116,15 @@ class ParchmentMethodImplementor : MethodImplementor {
                         if (substituted == null || !PsiElementRenameHandler.canRename(project, null, substituted))
                             return@let
 
-                        val dialog = processor.createRenameDialog(project, substituted, null, null)
+                        DumbService.getInstance(project).smartInvokeLater {
+                            val dialog = processor.createRenameDialog(project, substituted, null, null)
 
-                        try {
-                            dialog.setPreviewResults(false)
-                            dialog.performRename(paramName)
-                        } finally {
-                            dialog.close(DialogWrapper.CANCEL_EXIT_CODE) // to avoid dialog leak
+                            try {
+                                dialog.setPreviewResults(false)
+                                dialog.performRename(paramName)
+                            } finally {
+                                dialog.close(DialogWrapper.CANCEL_EXIT_CODE) // to avoid dialog leak
+                            }
                         }
                     }
                 }

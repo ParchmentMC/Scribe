@@ -55,6 +55,8 @@
         <methodImplementor implementation="org.parchmentmc.scribe.overrideImplement.ParchmentMethodImplementor"/>
 
         <fileDocumentManagerListener implementation="org.parchmentmc.scribe.io.ParchmentFileListener"/>
+
+        <externalProjectDataService implementation="org.parchmentmc.scribe.gradle.ForgeGradleDataService"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.plugins.gradle">
