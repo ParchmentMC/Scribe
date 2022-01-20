@@ -10,6 +10,7 @@
 
 package org.parchmentmc.scribe.util
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Key
 import com.intellij.psi.JavaRecursiveElementWalkingVisitor
 import com.intellij.psi.LambdaUtil
@@ -24,6 +25,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiPrimitiveType
 import com.intellij.psi.PsiType
+import com.intellij.psi.PsiWildcardType
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.ParameterizedCachedValue
@@ -36,6 +38,7 @@ import org.objectweb.asm.tree.MethodNode
 import java.util.WeakHashMap
 
 private const val INTERNAL_CONSTRUCTOR_NAME = "<init>"
+private val LOGGER = Logger.getInstance("ScribeBytecodeUtil")
 private val LAMBDA_NAME_KEY = Key.create<ParameterizedCachedValue<Object2IntMap<PsiLambdaExpression>, PsiClass>>("SCRIBE_LAMBDA_NAME")
 
 // Type
@@ -81,7 +84,11 @@ private fun PsiType.appendDescriptor(builder: StringBuilder): StringBuilder {
         is PsiPrimitiveType -> builder.append(internalName)
         is PsiArrayType -> componentType.appendDescriptor(builder.append('['))
         is PsiClassType -> appendInternalName(builder.append('L')).append(';')
-        else -> throw IllegalArgumentException("Unsupported PsiType: $this")
+        is PsiWildcardType -> extendsBound.appendDescriptor(builder)
+        else -> {
+            LOGGER.error("Unsupported PsiType: $this")
+            builder
+        }
     }
 }
 
