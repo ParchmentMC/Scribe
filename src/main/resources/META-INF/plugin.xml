@@ -64,20 +64,27 @@
     </extensions>
 
     <actions>
-        <action class="org.parchmentmc.scribe.action.MapParameterAction" id="MapParchmentParameterAction"
-                icon="icons/parchment.png"
-                text="Map Parchment Parameter"
-                description="Maps a parameter for Parchment and saves it to the mappings folder">
-            <add-to-group relative-to-action="EditorPopupMenu2" anchor="after" group-id="EditorPopupMenu"/>
-        </action>
-        <action class="org.parchmentmc.scribe.action.MapJavadocAction" id="MapParchmentJavadocAction"
-                icon="icons/parchment.png"
-                text="Map Parchment Javadoc"
-                description="Maps documentation for Parchment and saves it to the mappings folder">
-            <add-to-group relative-to-action="MapParchmentParameterAction" anchor="after" group-id="EditorPopupMenu"/>
-        </action>
+        <group id="ScribeParchment"
+               icon="/icons/parchment.png"
+               popup="true"
+               text="Parchment"
+               description="Contains functionality relating to Parchment mappings">
+            <action class="org.parchmentmc.scribe.action.MapParameterAction" id="MapParchmentParameterAction"
+                    text="Map Parchment Parameter"
+                    description="Maps a parameter for Parchment and saves it to the mappings folder">
+            </action>
+            <action class="org.parchmentmc.scribe.action.MapJavadocAction" id="MapParchmentJavadocAction"
+                    text="Map Parchment Javadoc"
+                    description="Maps documentation for Parchment and saves it to the mappings folder">
+            </action>
+            <action class="org.parchmentmc.scribe.action.RemapMethodParametersAction" id="RemapMethodParametersAction"
+                    text="Remap Method Parameters"
+                    description="Updates the parameter names of the selected method to use Parchment parameters if they exist">
+            </action>
+            <add-to-group group-id="EditorPopupMenu" relative-to-action="EditorPopupMenu2" anchor="after"/>
+        </group>
         <action class="org.parchmentmc.scribe.action.ResetMappingsAction" id="ResetParchmentMappingsAction"
-                icon="icons/parchment.png"
+                icon="/icons/parchment.png"
                 text="Reset Parchment Mappings"
                 description="Overwrites the in-memory mappings with the mappings saved on disk">
         </action>

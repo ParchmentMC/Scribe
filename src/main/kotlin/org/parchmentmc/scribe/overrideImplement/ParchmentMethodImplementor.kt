@@ -28,8 +28,6 @@ import com.intellij.codeInsight.generation.GenerateMembersUtil
 import com.intellij.codeInsight.generation.GenerationInfo
 import com.intellij.codeInsight.generation.OverrideImplementUtil
 import com.intellij.codeInsight.generation.PsiGenerationInfo
-import com.intellij.openapi.project.DumbService
-import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.psi.PsiAnnotationMethod
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
@@ -41,10 +39,9 @@ import com.intellij.psi.PsiVariable
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.TypeConversionUtil
-import com.intellij.refactoring.rename.PsiElementRenameHandler
-import com.intellij.refactoring.rename.RenamePsiElementProcessor
 import com.intellij.util.Consumer
 import org.parchmentmc.scribe.ParchmentMappings
+import org.parchmentmc.scribe.action.RemapMethodParametersAction
 import org.parchmentmc.scribe.settings.ParchmentSettings
 import org.parchmentmc.scribe.util.jvmIndex
 
@@ -104,30 +101,7 @@ class ParchmentMethodImplementor : MethodImplementor {
                 super.insert(targetClass, anchor, before)
 
                 val insertedMethod = this.psiMember ?: return
-                val methodData = ParchmentMappings.getMethodData(insertedMethod, searchSupers = true) ?: return
-                val parameters = insertedMethod.parameterList.parameters
-                val project = insertedMethod.project
-
-                parameters.forEachIndexed { index, parameter ->
-                    val paramName = methodData.getParameter(parameter.jvmIndex)?.name ?: return@forEachIndexed
-                    (parameters.getOrNull(index) as? PsiVariable)?.let {
-                        val processor = RenamePsiElementProcessor.forElement(it)
-                        val substituted: PsiElement? = processor.substituteElementToRename(it, null)
-                        if (substituted == null || !PsiElementRenameHandler.canRename(project, null, substituted))
-                            return@let
-
-                        DumbService.getInstance(project).smartInvokeLater {
-                            val dialog = processor.createRenameDialog(project, substituted, null, null)
-
-                            try {
-                                dialog.setPreviewResults(false)
-                                dialog.performRename(paramName)
-                            } finally {
-                                dialog.close(DialogWrapper.CANCEL_EXIT_CODE) // to avoid dialog leak
-                            }
-                        }
-                    }
-                }
+                RemapMethodParametersAction.remapMethodParameters(insertedMethod)
             }
         }
     }
