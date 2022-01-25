@@ -16,6 +16,7 @@ import com.intellij.psi.JavaRecursiveElementWalkingVisitor
 import com.intellij.psi.LambdaUtil
 import com.intellij.psi.PsiAnonymousClass
 import com.intellij.psi.PsiArrayType
+import com.intellij.psi.PsiCapturedWildcardType
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiField
@@ -85,6 +86,7 @@ private fun PsiType.appendDescriptor(builder: StringBuilder): StringBuilder {
         is PsiArrayType -> componentType.appendDescriptor(builder.append('['))
         is PsiClassType -> appendInternalName(builder.append('L')).append(';')
         is PsiWildcardType -> extendsBound.appendDescriptor(builder)
+        is PsiCapturedWildcardType -> wildcard.appendDescriptor(builder)
         else -> {
             LOGGER.error("Unsupported PsiType: $this")
             builder
