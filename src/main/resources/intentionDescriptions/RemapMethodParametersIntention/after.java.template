@@ -1,0 +1,3 @@
+public void use(String <spot>name</spot>) {
+    System.out.println(name);
+}

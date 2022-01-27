@@ -54,6 +54,11 @@
 
         <methodImplementor implementation="org.parchmentmc.scribe.overrideImplement.ParchmentMethodImplementor"/>
 
+        <intentionAction>
+            <className>org.parchmentmc.scribe.action.intention.RemapMethodParametersIntention</className>
+            <category>Scribe</category>
+        </intentionAction>
+
         <fileDocumentManagerListener implementation="org.parchmentmc.scribe.io.ParchmentFileListener"/>
 
         <externalProjectDataService implementation="org.parchmentmc.scribe.gradle.ForgeGradleDataService"/>
@@ -77,10 +82,10 @@
                     text="Map Parchment Javadoc"
                     description="Maps documentation for Parchment and saves it to the mappings folder">
             </action>
-            <action class="org.parchmentmc.scribe.action.RemapMethodParametersAction" id="RemapMethodParametersAction"
-                    text="Remap Method Parameters"
-                    description="Updates the parameter names of the selected method to use Parchment parameters if they exist">
-            </action>
+            <!--<action class="org.parchmentmc.scribe.action.RemapMethodParametersAction" id="RemapMethodParametersAction"-->
+            <!--        text="Remap Method Parameters"-->
+            <!--        description="Updates the parameter names of the selected method to use Parchment parameters if they exist">-->
+            <!--</action>-->
             <add-to-group group-id="EditorPopupMenu" relative-to-action="EditorPopupMenu2" anchor="after"/>
         </group>
         <action class="org.parchmentmc.scribe.action.ResetMappingsAction" id="ResetParchmentMappingsAction"
