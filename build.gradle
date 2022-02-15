@@ -48,7 +48,7 @@ intellij {
 
     downloadSources = true
     updateSinceUntilBuild = true
-    patchPluginXml.untilBuild = "213.*"
+    patchPluginXml.untilBuild = "221.*"
     plugins = ['java', 'gradle', 'ByteCodeViewer']
     sandboxDir = layout.projectDirectory.dir(".sandbox").toString()
 }
