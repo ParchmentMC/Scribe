@@ -33,20 +33,20 @@ import com.intellij.psi.impl.source.PsiMethodImpl
 import com.intellij.psi.impl.source.PsiParameterImpl
 import com.intellij.refactoring.suggested.startOffset
 import org.parchmentmc.scribe.ParchmentMappings
-import org.parchmentmc.scribe.settings.ParchmentSettings
+import org.parchmentmc.scribe.settings.ParchmentProjectSettings
 
 @Suppress("UnstableApiUsage")
 class ParchmentHintCollector(editor: Editor) : InlayHintsCollector {
-    private val settings = ParchmentSettings.instance
     private val factory = PresentationFactory(editor as EditorImpl)
 
     override fun collect(element: PsiElement, editor: Editor, sink: InlayHintsSink): Boolean {
-        if (!settings.displayHints)
+        val project = element.project
+        if (!ParchmentProjectSettings.getInstance(project).displayHints)
             return true
 
         when (element) {
             is PsiParameterImpl -> {
-                val mapped = ParchmentMappings.getParameterMapping(element, searchSupers = true) ?: return true
+                val mapped = ParchmentMappings.getInstance(project).getParameterMapping(element, searchSupers = true) ?: return true
                 if (element.name == mapped/* || element.name == "p${mapped.capitalize()}"*/) return true
                 val hint = factory.roundWithBackgroundAndSmallInset(factory.text("$mapped:"))
 

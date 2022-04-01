@@ -23,25 +23,30 @@
 
 package org.parchmentmc.scribe.io
 
-import com.intellij.openapi.fileEditor.FileDocumentManagerListener
-import com.intellij.openapi.project.ProjectManager
-import org.parchmentmc.scribe.ParchmentMappings
+import org.parchmentmc.feather.mapping.VersionedMDCDelegate
+import org.parchmentmc.feather.mapping.VersionedMappingDataContainer
+import java.io.IOException
+import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.Path
 
-class ParchmentFileListener : FileDocumentManagerListener {
-    override fun beforeAllDocumentsSaving() {
-        ProjectManager.getInstanceIfCreated()?.openProjects?.forEach {
-            val mappings = ParchmentMappings.getInstance(it)
-            if (mappings.modified) {
-                mappings.modified = false
+class ArchiveMappingDataIO(private val jsonMapper: JsonMappingDataIO) : MappingDataIO {
+    @Throws(IOException::class)
+    override fun write(data: VersionedMappingDataContainer, output: Path) {
+        Files.deleteIfExists(output)
+        output.parent?.let { Files.createDirectories(it) }
 
-                if (!mappings.mappingsMutable)
-                    return
-
-                val outputPath = mappings.getMappingsPathAsPath() ?: return
-                val data = mappings.mappingContainer ?: return
-
-                EnigmaFormattedExplodedIO.INSTANCE.write(data, outputPath)
-            }
+        FileSystems.newFileSystem(output, null).use { fs ->
+            jsonMapper.write(data, fs.getPath("parchment.json"))
         }
+    }
+
+    @Throws(IOException::class)
+    override fun read(input: Path, mutable: Boolean): VersionedMDCDelegate<*> = FileSystems.newFileSystem(input, null).use { fs ->
+        jsonMapper.read(fs.getPath("parchment.json"), mutable)
+    }
+
+    companion object {
+        val INSTANCE = ArchiveMappingDataIO(JsonMappingDataIO.INSTANCE)
     }
 }

@@ -23,15 +23,17 @@
 
 package org.parchmentmc.scribe.settings
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.RoamingType
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 
-@State(name = "ParchmentSettings", storages = [Storage("parchment_settings.xml")])
-class ParchmentSettings : PersistentStateComponent<ParchmentSettings.State> {
+@State(name = "ParchmentProjectSettings", storages = [Storage(value = "parchment_settings.xml", roamingType = RoamingType.DISABLED)])
+class ParchmentProjectSettings : PersistentStateComponent<ParchmentProjectSettings.State> {
     data class State(
-        var mappingsFolder: String = "",
+        var mappingsPath: String = "",
         var displayHints: Boolean = true,
         var remapParameters: Boolean = true
     )
@@ -47,10 +49,15 @@ class ParchmentSettings : PersistentStateComponent<ParchmentSettings.State> {
     }
 
     // Wrappers
-    var mappingsFolder: String
-        get() = state.mappingsFolder
+    var mappingsPath: String
+        get() {
+            if (state.mappingsPath.isEmpty()) {
+                return getInstance(ProjectManager.getInstance().defaultProject).state.mappingsPath
+            }
+            return state.mappingsPath
+        }
         set(value) {
-            state.mappingsFolder = value
+            state.mappingsPath = value
         }
 
     var displayHints: Boolean
@@ -66,7 +73,6 @@ class ParchmentSettings : PersistentStateComponent<ParchmentSettings.State> {
         }
 
     companion object {
-        val instance: ParchmentSettings
-            get() = ApplicationManager.getApplication().getService(ParchmentSettings::class.java)
+        fun getInstance(project: Project): ParchmentProjectSettings = project.getService(ParchmentProjectSettings::class.java)
     }
 }

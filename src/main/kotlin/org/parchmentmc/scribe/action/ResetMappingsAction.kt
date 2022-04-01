@@ -32,7 +32,9 @@ import java.io.IOException
 
 class ResetMappingsAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
-        if (ParchmentMappings.modified) {
+        val mappings = ParchmentMappings.getInstance(e.project ?: return)
+
+        if (mappings.modified) {
             val messageBuilder = MessageDialogBuilder.yesNo(
                 "Overwrite from Disk",
                 "Your in-memory mappings have been modified. Do you wish to overwrite them from disk?"
@@ -41,10 +43,10 @@ class ResetMappingsAction : AnAction() {
             if (!messageBuilder.ask(e.project)) return
         }
         try {
-            ParchmentMappings.resetMappingContainer()
+            mappings.resetMappingContainer()
             ParchmentMappings.invalidateHints()
         } catch (e: IOException) {
-            Messages.showErrorDialog("The folder specified was invalid", "Invalid Parchment Mappings Folder")
+            Messages.showErrorDialog("The path specified was invalid: $e", "Invalid Parchment Mappings Path")
         }
     }
 }

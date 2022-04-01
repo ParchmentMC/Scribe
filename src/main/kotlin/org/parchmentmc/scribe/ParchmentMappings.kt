@@ -26,8 +26,10 @@ package org.parchmentmc.scribe
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import com.intellij.codeInsight.hints.InlayHintsPassFactory
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ModuleData
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiField
@@ -41,38 +43,45 @@ import net.minecraftforge.srgutils.IMappingBuilder
 import net.minecraftforge.srgutils.IMappingFile
 import net.minecraftforge.srgutils.MinecraftVersion
 import org.parchmentmc.feather.mapping.MappingDataBuilder
+import org.parchmentmc.feather.mapping.MappingDataContainer
 import org.parchmentmc.feather.mapping.VersionedMDCDelegate
 import org.parchmentmc.scribe.gradle.ForgeGradleIntellijModel
+import org.parchmentmc.scribe.io.ArchiveMappingDataIO
 import org.parchmentmc.scribe.io.EnigmaFormattedExplodedIO
-import org.parchmentmc.scribe.settings.ParchmentSettings
+import org.parchmentmc.scribe.io.JsonMappingDataIO
+import org.parchmentmc.scribe.settings.ParchmentProjectSettings
 import org.parchmentmc.scribe.util.MemberReference
 import org.parchmentmc.scribe.util.findAllSuperConstructors
 import org.parchmentmc.scribe.util.findGradleModule
 import org.parchmentmc.scribe.util.fullQualifiedName
 import org.parchmentmc.scribe.util.getParameterByJvmIndex
-import org.parchmentmc.scribe.util.getQualifiedMemberReference
 import org.parchmentmc.scribe.util.jvmIndex
 import org.parchmentmc.scribe.util.qualifiedMemberReference
 import java.io.IOException
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
+import kotlin.io.path.extension
 
-object ParchmentMappings {
-    private val v1_17 = MinecraftVersion.from("1.17")
-    private val settings = ParchmentSettings.instance
+@Service
+class ParchmentMappings(project: Project) {
     private val classMapCache: Cache<DataNode<ModuleData>, IMappingFile> = CacheBuilder.newBuilder()
         .weakKeys()
         .expireAfterWrite(5, TimeUnit.MINUTES)
         .build()
-    var versionedMappingContainer: VersionedMDCDelegate<MappingDataBuilder>? = null
-        private set
-    var mappingContainer: MappingDataBuilder? = null
+    private val settings = ParchmentProjectSettings.getInstance(project)
+    var mappingContainer: VersionedMDCDelegate<*>? = null
         private set
     var modified: Boolean = false
 
     // Wrapper
-    val mappingFolderPath
-        get() = settings.mappingsFolder.nullize(nullizeSpaces = true)?.let(Paths::get)
+    private val mappingBuilder
+        get() = mappingContainer?.delegate as? MappingDataBuilder
+
+    /**
+     * `true` if the mapping container is not null and a mutable builder which supports modification, `false` otherwise
+     */
+    val mappingsMutable: Boolean
+        get() = mappingBuilder != null
 
     init {
         try {
@@ -82,18 +91,20 @@ object ParchmentMappings {
         }
     }
 
-    fun invalidateHints() = @Suppress("UnstableApiUsage") InlayHintsPassFactory.forceHintsUpdateOnNextPass()
+    fun getMappingsPathAsPath() = settings.mappingsPath.nullize(nullizeSpaces = true)?.let(Paths::get)
 
     fun getParameterMapping(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false) = getParameterData(parameter, create, searchSupers)?.name
 
-    fun getParameterData(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false): MappingDataBuilder.MutableParameterData? {
+    fun getOrCreateParameterData(parameter: PsiParameter) = getParameterData(parameter, create = true) as? MappingDataBuilder.MutableParameterData
+
+    fun getParameterData(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false): MappingDataContainer.ParameterData? {
         val methodData = when (val declarationScope = parameter.declarationScope) {
             is PsiMethod -> getMethodData(declarationScope, create = create, searchSupers = searchSupers)
             is PsiLambdaExpression -> getMethodData(declarationScope, create = create)
             else -> null
         } ?: return null
 
-        return if (create) methodData.getOrCreateParameter(parameter.jvmIndex) else methodData.getParameter(parameter.jvmIndex)
+        return if (create) (methodData as? MappingDataBuilder.MutableMethodData)?.getOrCreateParameter(parameter.jvmIndex) else methodData.getParameter(parameter.jvmIndex)
     }
 
     fun getMethodJavadoc(method: PsiMethod): String? {
@@ -112,22 +123,24 @@ object ParchmentMappings {
         return builder.toString()
     }
 
-    fun getMethodData(lambda: PsiLambdaExpression, create: Boolean = false): MappingDataBuilder.MutableMethodData? {
+    fun getMethodData(lambda: PsiLambdaExpression, create: Boolean = false): MappingDataContainer.MethodData? {
         if (mappingContainer == null)
             return null
         val memberRef = lambda.qualifiedMemberReference ?: return null
 
         return getClassMemberData(memberRef, lambda, create, IMappingFile.IClass::remapMethod) { classData, methodName, methodDesc ->
-            if (create) classData.getOrCreateMethod(methodName, methodDesc) else classData.getMethod(methodName, methodDesc)
+            if (create) (classData as? MappingDataBuilder.MutableClassData)?.getOrCreateMethod(methodName, methodDesc) else classData.getMethod(methodName, methodDesc)
         }
     }
 
-    fun getMethodData(method: PsiMethod, create: Boolean = false, searchSupers: Boolean = false): MappingDataBuilder.MutableMethodData? {
+    fun getOrCreateMethodData(method: PsiMethod) = getMethodData(method, create = true) as? MappingDataBuilder.MutableMethodData
+
+    fun getMethodData(method: PsiMethod, create: Boolean = false, searchSupers: Boolean = false): MappingDataContainer.MethodData? {
         if (mappingContainer == null)
             return null
         val memberRef = method.qualifiedMemberReference
         val methodData = getClassMemberData(memberRef, method, create, IMappingFile.IClass::remapMethod) { classData, methodName, methodDesc ->
-            if (create) classData.getOrCreateMethod(methodName, methodDesc) else classData.getMethod(methodName, methodDesc)
+            if (create) (classData as? MappingDataBuilder.MutableClassData)?.getOrCreateMethod(methodName, methodDesc) else classData.getMethod(methodName, methodDesc)
         }
 
         if (methodData == null && !create && searchSupers) {
@@ -147,25 +160,29 @@ object ParchmentMappings {
         return methodData
     }
 
-    fun getFieldData(field: PsiField, create: Boolean = false): MappingDataBuilder.MutableFieldData? {
+    fun getOrCreateFieldData(field: PsiField) = getFieldData(field, create = true) as? MappingDataBuilder.MutableFieldData
+
+    fun getFieldData(field: PsiField, create: Boolean = false): MappingDataContainer.FieldData? {
         if (mappingContainer == null)
             return null
         return getClassMemberData(field.qualifiedMemberReference, field, create, { srgClass, name, _ -> srgClass.remapField(name) }) { classData, fieldName, fieldDesc ->
-            if (create) classData.getOrCreateField(fieldName, fieldDesc) else classData.getField(fieldName)
+            if (create) (classData as? MappingDataBuilder.MutableClassData)?.getOrCreateField(fieldName, fieldDesc) else classData.getField(fieldName)
         }
     }
 
-    fun getClassData(clazz: PsiClass, create: Boolean = false): MappingDataBuilder.MutableClassData? {
+    fun getOrCreateClassData(clazz: PsiClass) = getClassData(clazz, create = true) as? MappingDataBuilder.MutableClassData
+
+    fun getClassData(clazz: PsiClass, create: Boolean = false): MappingDataContainer.ClassData? {
         val className = clazz.fullQualifiedName?.replace('.', '/') ?: return null
         val srgToMoj = getSrgToMoj(clazz)
         val remappedName = srgToMoj?.remapClass(className) ?: className
 
-        return if (create) mappingContainer?.getOrCreateClass(remappedName) else mappingContainer?.getClass(remappedName)
+        return if (create) mappingBuilder?.getOrCreateClass(remappedName) else mappingContainer?.getClass(remappedName)
     }
 
     private fun <T> getClassMemberData(
         memberRef: MemberReference, element: PsiElement, create: Boolean, nameRemapper: (IMappingFile.IClass, String, String) -> String?,
-        applier: (MappingDataBuilder.MutableClassData, String, String) -> T
+        applier: (MappingDataContainer.ClassData, String, String) -> T
     ): T? {
         if (mappingContainer == null)
             return null
@@ -178,26 +195,29 @@ object ParchmentMappings {
         val remappedDesc = srgToMoj?.remapDescriptor(memberDesc) ?: memberDesc
         val remappedName = srgClass?.let { nameRemapper(it, memberRef.name, remappedDesc) } ?: memberRef.name
 
-        val classData = (if (create) mappingContainer?.getOrCreateClass(remappedClass) else mappingContainer?.getClass(remappedClass)) ?: return null
+        val classData = (if (create) mappingBuilder?.getOrCreateClass(remappedClass) else mappingContainer?.getClass(remappedClass)) ?: return null
         return applier(classData, remappedName, remappedDesc)
     }
 
     fun resetMappingContainer() {
         modified = false
-        val folder = mappingFolderPath
+        val path = getMappingsPathAsPath()
 
         try {
-            versionedMappingContainer = if (folder == null || !folder.isDirectory()) {
+            mappingContainer = if (path == null) {
                 null
+            } else if (path.isDirectory()) {
+                EnigmaFormattedExplodedIO.INSTANCE.read(path, true)
+            } else if (path.extension == "json") {
+                JsonMappingDataIO.INSTANCE.read(path, false)
+            } else if (path.extension == "zip") {
+                ArchiveMappingDataIO.INSTANCE.read(path, false)
             } else {
-                @Suppress("UNCHECKED_CAST")
-                EnigmaFormattedExplodedIO.INSTANCE.read(folder, true) as VersionedMDCDelegate<MappingDataBuilder>
+                null
             }
-            mappingContainer = versionedMappingContainer?.delegate
         } catch (e: Exception) {
-            versionedMappingContainer = null
             mappingContainer = null
-            settings.mappingsFolder = ""
+            settings.mappingsPath = ""
             throw e
         }
     }
@@ -219,9 +239,17 @@ object ParchmentMappings {
         null
     }
 
-    private fun isOfficialVersion(mcVersion: String) = try {
-        v1_17 <= MinecraftVersion.from(mcVersion)
-    } catch (e: Exception) {
-        false
+    companion object {
+        private val v1_17 = MinecraftVersion.from("1.17")
+
+        private fun isOfficialVersion(mcVersion: String) = try {
+            v1_17 <= MinecraftVersion.from(mcVersion)
+        } catch (e: Exception) {
+            false
+        }
+
+        fun getInstance(project: Project): ParchmentMappings = project.getService(ParchmentMappings::class.java)
+
+        fun invalidateHints() = @Suppress("UnstableApiUsage") InlayHintsPassFactory.forceHintsUpdateOnNextPass()
     }
 }

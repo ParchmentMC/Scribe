@@ -26,6 +26,7 @@ package org.parchmentmc.scribe.action
 import com.intellij.codeInsight.navigation.targetPresentation
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiField
@@ -39,45 +40,48 @@ import java.util.Locale
 
 class MapJavadocAction : MappingAction() {
     override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
         val element = e.getData(CommonDataKeys.PSI_ELEMENT) ?: return
 
         when (element) {
-            is PsiParameter -> mapParameterJavadoc(element, e)
-            is PsiMethod -> mapMethodJavadoc(element, e)
-            is PsiField -> mapFieldJavadoc(element, e)
-            is PsiClass -> mapClassJavadoc(element, e)
+            is PsiParameter -> mapParameterJavadoc(project, element, e)
+            is PsiMethod -> mapMethodJavadoc(project, element, e)
+            is PsiField -> mapFieldJavadoc(project, element, e)
+            is PsiClass -> mapClassJavadoc(project, element, e)
         }
     }
 
-    private fun mapParameterJavadoc(parameter: PsiParameter, e: AnActionEvent) {
+    private fun mapParameterJavadoc(project: Project, parameter: PsiParameter, e: AnActionEvent) {
         val mapFun = fun(parameter: PsiParameter) {
-            val currentJavadoc = ParchmentMappings.getParameterData(parameter)?.javadoc
+            val mappings = ParchmentMappings.getInstance(project)
+            val currentJavadoc = mappings.getParameterData(parameter)?.javadoc
             // Return early if they canceled (null), but then make null if it's empty or only has spaces
             val newJavadoc = (showInputDialog(e, "parameter", currentJavadoc) ?: return).nullize(nullizeSpaces = true)
 
             if (newJavadoc == currentJavadoc)
                 return
-            val parameterData = ParchmentMappings.getParameterData(parameter, create = true) ?: return
+            val parameterData = mappings.getOrCreateParameterData(parameter) ?: return
 
             parameterData.javadoc = newJavadoc
-            ParchmentMappings.modified = true
+            mappings.modified = true
             ParchmentMappings.invalidateHints()
         }
 
         MapParameterAction.mapParameter(e, parameter, mapFun)
     }
 
-    private fun mapMethodJavadoc(method: PsiMethod, e: AnActionEvent) {
+    private fun mapMethodJavadoc(project: Project, method: PsiMethod, e: AnActionEvent) {
         val allSuperMethods = method.findAllSuperMethods()
 
         val mapFun = fun(method: PsiMethod) {
-            val currentJavadoc = ParchmentMappings.getMethodJavadoc(method)
+            val mappings = ParchmentMappings.getInstance(project)
+            val currentJavadoc = mappings.getMethodJavadoc(method)
             // Return early if they canceled (null), but then make null if it's empty or only has spaces
             val newJavadoc = (showInputDialog(e, "method", currentJavadoc, multiline = true) ?: return).nullize(nullizeSpaces = true)
 
             if (newJavadoc == currentJavadoc)
                 return
-            val methodData = ParchmentMappings.getMethodData(method, create = true) ?: return
+            val methodData = mappings.getOrCreateMethodData(method) ?: return
 
             methodData.clearJavadoc()
             newJavadoc?.split("\n")?.toMutableList()?.let { javadocs ->
@@ -99,7 +103,7 @@ class MapJavadocAction : MappingAction() {
                 }
                 methodData.addJavadoc(javadocs)
             }
-            ParchmentMappings.modified = true
+            mappings.modified = true
         }
 
         if (allSuperMethods.isNotEmpty()) {
@@ -112,33 +116,35 @@ class MapJavadocAction : MappingAction() {
         }
     }
 
-    private fun mapFieldJavadoc(field: PsiField, e: AnActionEvent) {
-        val currentJavadoc = ParchmentMappings.getFieldData(field)?.javadoc?.joinToString("\n")
+    private fun mapFieldJavadoc(project: Project, field: PsiField, e: AnActionEvent) {
+        val mappings = ParchmentMappings.getInstance(project)
+        val currentJavadoc = mappings.getFieldData(field)?.javadoc?.joinToString("\n")
         // Return early if they canceled (null), but then make null if it's empty or only has spaces
         val newJavadoc = (showInputDialog(e, "field", currentJavadoc, multiline = true) ?: return).nullize(nullizeSpaces = true)
 
         if (newJavadoc == currentJavadoc)
             return
-        val fieldData = ParchmentMappings.getFieldData(field, create = true) ?: return
+        val fieldData = mappings.getOrCreateFieldData(field) ?: return
 
         fieldData.clearJavadoc()
         fieldData.addJavadoc(newJavadoc?.split('\n') ?: listOf())
-        ParchmentMappings.modified = true
+        mappings.modified = true
         ParchmentMappings.invalidateHints()
     }
 
-    private fun mapClassJavadoc(clazz: PsiClass, e: AnActionEvent) {
-        val currentJavadoc = ParchmentMappings.getClassData(clazz)?.javadoc?.joinToString("\n")
+    private fun mapClassJavadoc(project: Project, clazz: PsiClass, e: AnActionEvent) {
+        val mappings = ParchmentMappings.getInstance(project)
+        val currentJavadoc = mappings.getClassData(clazz)?.javadoc?.joinToString("\n")
         // Return early if they canceled (null), but then make null if it's empty or only has spaces
         val newJavadoc = (showInputDialog(e, "class", currentJavadoc, multiline = true) ?: return).nullize(nullizeSpaces = true)
 
         if (newJavadoc == currentJavadoc)
             return
-        val classData = ParchmentMappings.getClassData(clazz, create = true) ?: return
+        val classData = mappings.getOrCreateClassData(clazz) ?: return
 
         classData.clearJavadoc()
         classData.addJavadoc(newJavadoc?.split('\n') ?: listOf())
-        ParchmentMappings.modified = true
+        mappings.modified = true
         ParchmentMappings.invalidateHints()
     }
 

@@ -29,6 +29,6 @@ import org.parchmentmc.scribe.ParchmentMappings
 
 abstract class MappingAction : AnAction() {
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible = ParchmentMappings.mappingContainer != null
+        e.presentation.isEnabledAndVisible = e.project?.let { ParchmentMappings.getInstance(it).mappingsMutable } ?: false
     }
 }

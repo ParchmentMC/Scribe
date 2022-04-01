@@ -42,18 +42,17 @@ import com.intellij.psi.util.TypeConversionUtil
 import com.intellij.util.Consumer
 import org.parchmentmc.scribe.ParchmentMappings
 import org.parchmentmc.scribe.action.intention.RemapMethodParametersIntention
-import org.parchmentmc.scribe.settings.ParchmentSettings
+import org.parchmentmc.scribe.settings.ParchmentProjectSettings
 import org.parchmentmc.scribe.util.jvmIndex
 
 class ParchmentMethodImplementor : MethodImplementor {
-    private val settings = ParchmentSettings.instance
-
     override fun getMethodsToImplement(aClass: PsiClass?): Array<PsiMethod> = PsiMethod.EMPTY_ARRAY
 
     override fun createImplementationPrototypes(inClass: PsiClass, method: PsiMethod): Array<PsiMethod> {
-        if (!settings.remapParameters || method.parameterList.parameters.isEmpty())
+        val project = method.project
+        if (!ParchmentProjectSettings.getInstance(project).remapParameters || method.parameterList.parameters.isEmpty())
             return PsiMethod.EMPTY_ARRAY
-        val methodData = ParchmentMappings.getMethodData(method, searchSupers = true) ?: return PsiMethod.EMPTY_ARRAY
+        val methodData = ParchmentMappings.getInstance(project).getMethodData(method, searchSupers = true) ?: return PsiMethod.EMPTY_ARRAY
 
         val containingClass = method.containingClass ?: return PsiMethod.EMPTY_ARRAY
         val substitutor = if (inClass.isInheritor(containingClass, true)) {
@@ -93,7 +92,7 @@ class ParchmentMethodImplementor : MethodImplementor {
     }
 
     override fun createGenerationInfo(method: PsiMethod, mergeIfExists: Boolean): GenerationInfo? {
-        if (!settings.remapParameters || !method.isConstructor)
+        if (!ParchmentProjectSettings.getInstance(method.project).remapParameters || !method.isConstructor)
             return null
 
         return object : PsiGenerationInfo<PsiMethod>(method) {

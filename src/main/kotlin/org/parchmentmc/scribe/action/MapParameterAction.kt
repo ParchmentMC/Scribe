@@ -38,10 +38,12 @@ import org.parchmentmc.scribe.util.findAllSuperMethods
 
 class MapParameterAction : MappingAction() {
     override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
         val parameter = e.getData(CommonDataKeys.PSI_ELEMENT) as? PsiParameter ?: return
+        val mappings = ParchmentMappings.getInstance(project)
 
         val mapFun = fun(parameter: PsiParameter) {
-            val currentName = ParchmentMappings.getParameterMapping(parameter, searchSupers = true)
+            val currentName = mappings.getParameterMapping(parameter, searchSupers = true)
             // Return early if they canceled (null), but then make null if it's empty or only has spaces
             val mapped = (Messages.showInputDialog(
                 e.project, "Enter a new parameter name:", "Map Parameter",
@@ -50,10 +52,10 @@ class MapParameterAction : MappingAction() {
 
             if (mapped == currentName)
                 return
-            val parameterData = ParchmentMappings.getParameterData(parameter, create = true) ?: return
+            val parameterData = mappings.getOrCreateParameterData(parameter) ?: return
 
             parameterData.name = mapped
-            ParchmentMappings.modified = true
+            mappings.modified = true
             ParchmentMappings.invalidateHints()
         }
 

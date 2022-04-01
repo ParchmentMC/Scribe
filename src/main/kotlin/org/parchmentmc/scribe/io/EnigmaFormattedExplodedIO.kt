@@ -26,15 +26,9 @@ package org.parchmentmc.scribe.io
 import com.google.common.base.CharMatcher
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okio.buffer
 import okio.sink
 import okio.source
-import org.parchmentmc.feather.io.moshi.LinkedHashSetMoshiAdapter
-import org.parchmentmc.feather.io.moshi.MDCMoshiAdapter
-import org.parchmentmc.feather.io.moshi.MetadataMoshiAdapter
-import org.parchmentmc.feather.io.moshi.OffsetDateTimeAdapter
-import org.parchmentmc.feather.io.moshi.SimpleVersionAdapter
 import org.parchmentmc.feather.mapping.ImmutableMappingDataContainer
 import org.parchmentmc.feather.mapping.ImmutableMappingDataContainer.ImmutableClassData
 import org.parchmentmc.feather.mapping.MappingDataBuilder
@@ -148,14 +142,6 @@ class EnigmaFormattedExplodedIO(private val moshi: Moshi, private val jsonIndent
     data class DataInfo(var version: SimpleVersion? = null)
 
     companion object {
-        private val MOSHI = Moshi.Builder()
-            .add(OffsetDateTimeAdapter())
-            .add(MDCMoshiAdapter(true))
-            .add(SimpleVersionAdapter())
-            .add(LinkedHashSetMoshiAdapter.FACTORY)
-            .add(MetadataMoshiAdapter())
-            .addLast(KotlinJsonAdapterFactory())
-            .build()
         val INSTANCE = EnigmaFormattedExplodedIO(MOSHI, "    ", "mapping")
         private val DOLLAR_SIGN: CharMatcher = CharMatcher.`is`('$')
         internal val CLASS_NAME_LENGTH_THEN_LEXICOGRAPHICALLY: Comparator<String> = Comparator

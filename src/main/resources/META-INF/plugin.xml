@@ -31,13 +31,15 @@
       <br/><br/>
       Currently supported features are:
       <ul>
-        <li>Loading mapping data from a Parchment data folder and displaying parameter hints</li>
+        <li>Loading mapping data from a Parchment data folder, export JSON file, or ZIP archive and displaying parameter hints</li>
         <li>Mapping parameters and saving to disk</li>
         <li>Using mapping data when overriding mapped methods</li>
       </ul>
       <br/>
-      To use, go to <code>Settings > Tools > Parchment Mappings</code>, and provide the full path to the <code>data</code> folder in a Git clone of the Parchment repo.
-      After applying the settings, parameter hints will appear in Mojang classes, and a <code>Map Parameter</code> action will appear in the context menu.
+      To use, go to <code>Settings > Tools > Parchment Mappings</code>, and provide the full path to the <code>data</code> folder in a Git clone of the Parchment repo OR a downloaded Parchment export zip.
+      This can be configured on a per-project basis.
+      You may want to click <code>Save as Default Path</code> to save the mapping path as the default for any projects which do not specify one.
+      After applying the settings, parameter hints will appear in Mojang classes, and a <code>Map Parameter</code> action will appear in the context menu if you load a folder for mappings.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -47,10 +49,13 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.inlayProvider language="JAVA" implementationClass="org.parchmentmc.scribe.hints.ParchmentHintProvider"/>
-        <applicationService serviceImplementation="org.parchmentmc.scribe.settings.ParchmentSettings"/>
+        <projectService serviceImplementation="org.parchmentmc.scribe.settings.ParchmentProjectSettings"/>
 
-        <applicationConfigurable displayName="Parchment Mappings" id="Settings.Parchment" groupId="tools"
-                                 instance="org.parchmentmc.scribe.settings.ParchmentConfigurable"/>
+        <projectConfigurable displayName="Parchment Mappings"
+                             parentId="tools"
+                             id="org.parchmentmc.scribe.settings.ParchmentProjectConfigurable"
+                             instance="org.parchmentmc.scribe.settings.ParchmentProjectConfigurable"
+                             nonDefaultProject="false"/>
 
         <methodImplementor implementation="org.parchmentmc.scribe.overrideImplement.ParchmentMethodImplementor"/>
 
@@ -76,11 +81,11 @@
                description="Contains functionality relating to Parchment mappings">
             <action class="org.parchmentmc.scribe.action.MapParameterAction" id="MapParchmentParameterAction"
                     text="Map Parchment Parameter"
-                    description="Maps a parameter for Parchment and saves it to the mappings folder">
+                    description="Maps a parameter for Parchment and saves it to the mappings folder. Only enabled when the mappings path is an exploded folder with Enigma .mapping files.">
             </action>
             <action class="org.parchmentmc.scribe.action.MapJavadocAction" id="MapParchmentJavadocAction"
                     text="Map Parchment Javadoc"
-                    description="Maps documentation for Parchment and saves it to the mappings folder">
+                    description="Maps documentation for Parchment and saves it to the mappings folder. Only enabled when the mappings path is an exploded folder with Enigma .mapping files.">
             </action>
             <!--<action class="org.parchmentmc.scribe.action.RemapMethodParametersAction" id="RemapMethodParametersAction"-->
             <!--        text="Remap Method Parameters"-->

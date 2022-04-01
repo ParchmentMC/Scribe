@@ -48,7 +48,7 @@ class RemapMethodParametersIntention : PsiElementBaseIntentionAction() {
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
         val method = getContainingMethod(element) ?: return false
 
-        return ParchmentMappings.getMethodData(method, searchSupers = true) != null && canModify(element)
+        return ParchmentMappings.getInstance(project).getMethodData(method, searchSupers = true) != null && canModify(element)
     }
 
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {
@@ -64,7 +64,7 @@ class RemapMethodParametersIntention : PsiElementBaseIntentionAction() {
         }
 
         fun remapMethodParameters(method: PsiMethod, project: Project = method.project, editor: Editor? = null) {
-            val methodData = ParchmentMappings.getMethodData(method, searchSupers = true) ?: return
+            val methodData = ParchmentMappings.getInstance(project).getMethodData(method, searchSupers = true) ?: return
             val parameters = method.parameterList.parameters
 
             DumbService.getInstance(project).smartInvokeLater {

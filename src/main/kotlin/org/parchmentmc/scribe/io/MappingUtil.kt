@@ -23,25 +23,19 @@
 
 package org.parchmentmc.scribe.io
 
-import com.intellij.openapi.fileEditor.FileDocumentManagerListener
-import com.intellij.openapi.project.ProjectManager
-import org.parchmentmc.scribe.ParchmentMappings
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import org.parchmentmc.feather.io.moshi.LinkedHashSetMoshiAdapter
+import org.parchmentmc.feather.io.moshi.MDCMoshiAdapter
+import org.parchmentmc.feather.io.moshi.MetadataMoshiAdapter
+import org.parchmentmc.feather.io.moshi.OffsetDateTimeAdapter
+import org.parchmentmc.feather.io.moshi.SimpleVersionAdapter
 
-class ParchmentFileListener : FileDocumentManagerListener {
-    override fun beforeAllDocumentsSaving() {
-        ProjectManager.getInstanceIfCreated()?.openProjects?.forEach {
-            val mappings = ParchmentMappings.getInstance(it)
-            if (mappings.modified) {
-                mappings.modified = false
-
-                if (!mappings.mappingsMutable)
-                    return
-
-                val outputPath = mappings.getMappingsPathAsPath() ?: return
-                val data = mappings.mappingContainer ?: return
-
-                EnigmaFormattedExplodedIO.INSTANCE.write(data, outputPath)
-            }
-        }
-    }
-}
+val MOSHI: Moshi = Moshi.Builder()
+    .add(OffsetDateTimeAdapter())
+    .add(MDCMoshiAdapter(true))
+    .add(SimpleVersionAdapter())
+    .add(LinkedHashSetMoshiAdapter.FACTORY)
+    .add(MetadataMoshiAdapter())
+    .addLast(KotlinJsonAdapterFactory())
+    .build()

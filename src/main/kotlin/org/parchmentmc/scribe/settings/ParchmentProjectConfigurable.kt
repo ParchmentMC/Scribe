@@ -23,9 +23,11 @@
 
 package org.parchmentmc.scribe.settings
 
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -35,13 +37,12 @@ import org.parchmentmc.scribe.ParchmentMappings
 import java.io.IOException
 import javax.swing.JCheckBox
 
-class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), SearchableConfigurable {
-    private lateinit var mappingsFolderField: TextFieldWithBrowseButton
+class ParchmentProjectConfigurable(private val project: Project) : BoundConfigurable("Parchment Settings"), SearchableConfigurable {
+    private lateinit var mappingsPathField: TextFieldWithBrowseButton
     private lateinit var displayHintsCheckbox: JCheckBox
     private lateinit var remapParametersCheckbox: JCheckBox
-    private val settings = ParchmentSettings.instance
-
-    override fun getDisplayName(): String = "Parchment Settings"
+    private val settings = ParchmentProjectSettings.getInstance(project)
+    private val mappings = ParchmentMappings.getInstance(project)
 
     override fun getId(): String = ID
 
@@ -53,19 +54,25 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
         // }
         row {
             cell {
-                mappingsFolderField = com.intellij.ui.components.textFieldWithBrowseButton(
-                    null,
-                    "Choose Mappings Folder",
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
+                mappingsPathField = com.intellij.ui.components.textFieldWithBrowseButton(
+                    project = project,
+                    "Choose Mappings Path",
+                    fileChooserDescriptor = FileChooserDescriptor(true, true, true, true, false, false)
+                        .withFileFilter { it.isDirectory || it.name.endsWith(".json") || it.name.endsWith(".zip") }
+                        .withDescription("Selected path may be a folder with enigma .mapping files, a ZIP archive with an enclosed parchment.json file, or a JSON file.")
                 )
-                mappingsFolderField.textField.text = settings.mappingsFolder
+                mappingsPathField.textField.text = settings.mappingsPath
                 component(
-                    UI.PanelFactory.panel(mappingsFolderField)
-                        .withLabel("Parchment Mappings Folder:")
-                        .withComment("<p>The folder to use when parsing and generating Parchment mappings. Must be in Enigma <code>.mapping</code> file format!</p>")
+                    UI.PanelFactory.panel(mappingsPathField)
+                        .withLabel("Parchment Mappings Path:")
+                        .withComment("<p>The folder or file to use when parsing and generating Parchment mappings. Only a folder with enigma .mapping files allows remapping data.</p>")
                         .createPanel()
                 )
-                mappingsFolderField.toolTipText = "The output folder to use when generating Parchment mappings."
+            }
+            row {
+                button("Save as Default Path") {
+                    ParchmentProjectSettings.getInstance(ProjectManager.getInstance().defaultProject).mappingsPath = settings.mappingsPath
+                }.comment("<p>Saves the current mappings path as the default path to load when projects have no mappings path specified.</p>")
             }
         }
         row {
@@ -73,7 +80,7 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
                 displayHintsCheckbox = checkBox(
                     "Display Parchment Hints",
                     isSelected = settings.displayHints,
-                    comment = "Determines whether Parchment hints like parameters and javadocs should be shown as parsed from the Mappings Folder."
+                    comment = "Determines whether Parchment hints like parameters and javadocs should be shown as parsed from the Mappings Path."
                 ).component
             }
         }
@@ -89,13 +96,13 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
     }
 
     override fun reset() {
-        mappingsFolderField.textField.text = settings.mappingsFolder
+        mappingsPathField.textField.text = settings.mappingsPath
         displayHintsCheckbox.isSelected = settings.displayHints
         remapParametersCheckbox.isSelected = settings.remapParameters
     }
 
     override fun isModified(): Boolean {
-        return isModified(mappingsFolderField.textField, settings.mappingsFolder)
+        return isModified(mappingsPathField.textField, settings.mappingsPath)
                 || isModified(displayHintsCheckbox, settings.displayHints)
                 || isModified(remapParametersCheckbox, settings.remapParameters)
     }
@@ -104,13 +111,13 @@ class ParchmentConfigurable : BoundConfigurable("Parchment Settings"), Searchabl
     override fun apply() {
         if (isModified)
             ParchmentMappings.invalidateHints()
-        val mappingsFolderModified = isModified(mappingsFolderField.textField, settings.mappingsFolder)
-        settings.mappingsFolder = mappingsFolderField.text
+        val mappingsFolderModified = isModified(mappingsPathField.textField, settings.mappingsPath)
+        settings.mappingsPath = mappingsPathField.text
         if (mappingsFolderModified) {
             try {
-                ParchmentMappings.resetMappingContainer()
+                mappings.resetMappingContainer()
             } catch (e: IOException) {
-                Messages.showErrorDialog("The folder specified was invalid", "Invalid Parchment Mappings Folder")
+                Messages.showErrorDialog("The path specified was invalid: $e", "Invalid Parchment Mappings Path")
             }
         }
         settings.displayHints = displayHintsCheckbox.isSelected

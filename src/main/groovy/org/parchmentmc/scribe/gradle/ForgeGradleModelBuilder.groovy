@@ -44,7 +44,7 @@ class ForgeGradleModelBuilder implements ModelBuilderService {
         if (task == null)
             return null
 
-        def mcVersion = project.extensions.extraProperties.get("MC_VERSION")
+        def mcVersion = project.extensions.extraProperties.find("MC_VERSION")
         def taskOutput = task.outputs.files.singleFile
         if (!(mcVersion instanceof String) || taskOutput == null)
             return null
