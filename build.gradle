@@ -51,6 +51,7 @@ intellij {
     version = platformVersion
 
     downloadSources = true
+    updateSinceUntilBuild = false
     plugins = ['java', 'gradle', 'Groovy', 'ByteCodeViewer']
     sandboxDir = layout.projectDirectory.dir(".sandbox").toString()
 }
