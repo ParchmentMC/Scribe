@@ -22,6 +22,7 @@
 -->
 
 <idea-plugin url="https://github.com/ParchmentMC/Scribe">
+    <idea-version since-build="221"/>
     <id>org.parchmentmc.scribe</id>
     <name>Scribe</name>
     <vendor>ParchmentMC</vendor>
@@ -59,10 +60,13 @@
 
         <methodImplementor implementation="org.parchmentmc.scribe.overrideImplement.ParchmentMethodImplementor"/>
 
-        <intentionAction>
-            <className>org.parchmentmc.scribe.action.intention.RemapMethodParametersIntention</className>
-            <category>Scribe</category>
-        </intentionAction>
+        <localInspection displayName="Method parameters are not mapped to Parchment"
+                         groupName="Parchment"
+                         language="JAVA"
+                         enabledByDefault="true"
+                         level="INFORMATION"
+                         hasStaticDescription="true"
+                         implementationClass="org.parchmentmc.scribe.inspection.NonParchmentMethodParametersInspection"/>
 
         <fileDocumentManagerListener implementation="org.parchmentmc.scribe.io.ParchmentFileListener"/>
 

@@ -3,14 +3,14 @@ plugins {
     id 'groovy'
     id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
     id 'idea'
-    id 'org.jetbrains.intellij' version '1.1.4'
+    id 'org.jetbrains.intellij' version '1.6.0'
     id 'org.cadixdev.licenser' version '0.6.1'
 }
 
 group = pluginGroup
 version = pluginVersion
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
 
 repositories {
     mavenCentral()
@@ -29,8 +29,6 @@ repositories {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}"
-
     implementation "org.parchmentmc.feather:io-moshi:${featherVersion}"
     implementation "com.squareup.moshi:moshi-kotlin:${moshiVersion}"
     implementation "net.minecraftforge:srgutils:${srgutilsVersion}"
@@ -39,6 +37,12 @@ dependencies {
     implementation "org.ow2.asm:asm:${asmVersion}"
     implementation "org.ow2.asm:asm-tree:${asmVersion}"
     implementation "org.ow2.asm:asm-analysis:${asmVersion}"
+
+    compileOnly "org.codehaus.groovy:groovy-all:${groovyVersion}"
+}
+
+configurations.implementation {
+    exclude group: 'org.jetbrains.kotlin'
 }
 
 intellij {
@@ -47,8 +51,6 @@ intellij {
     version = platformVersion
 
     downloadSources = true
-    updateSinceUntilBuild = true
-    patchPluginXml.untilBuild = "221.*"
     plugins = ['java', 'gradle', 'ByteCodeViewer']
     sandboxDir = layout.projectDirectory.dir(".sandbox").toString()
 }
@@ -67,6 +69,7 @@ idea.module.excludeDirs.add(project.file(intellij.sandboxDir.get()))
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
+        jvmTarget = '11'
         freeCompilerArgs = ['-Xjvm-default=all']
     }
 }

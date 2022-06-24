@@ -37,6 +37,7 @@ import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiLambdaExpression
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiParameter
+import com.intellij.psi.PsiParameterListOwner
 import com.intellij.util.io.isDirectory
 import com.intellij.util.text.nullize
 import net.minecraftforge.srgutils.IMappingBuilder
@@ -98,11 +99,9 @@ class ParchmentMappings(project: Project) {
     fun getOrCreateParameterData(parameter: PsiParameter) = getParameterData(parameter, create = true) as? MappingDataBuilder.MutableParameterData
 
     fun getParameterData(parameter: PsiParameter, create: Boolean = false, searchSupers: Boolean = false): MappingDataContainer.ParameterData? {
-        val methodData = when (val declarationScope = parameter.declarationScope) {
-            is PsiMethod -> getMethodData(declarationScope, create = create, searchSupers = searchSupers)
-            is PsiLambdaExpression -> getMethodData(declarationScope, create = create)
-            else -> null
-        } ?: return null
+        if (mappingContainer == null)
+            return null
+        val methodData = getMethodData(parameter.declarationScope as? PsiParameterListOwner ?: return null, create = create, searchSupers = searchSupers) ?: return null
 
         return if (create) (methodData as? MappingDataBuilder.MutableMethodData)?.getOrCreateParameter(parameter.jvmIndex) else methodData.getParameter(parameter.jvmIndex)
     }
@@ -121,6 +120,17 @@ class ParchmentMappings(project: Project) {
         }
 
         return builder.toString()
+    }
+
+    private fun getMethodData(parameterListOwner: PsiParameterListOwner, create: Boolean = false, searchSupers: Boolean = false): MappingDataContainer.MethodData? {
+        if (mappingContainer == null)
+            return null
+
+        return when (parameterListOwner) {
+            is PsiMethod -> getMethodData(parameterListOwner, create = create, searchSupers = searchSupers)
+            is PsiLambdaExpression -> getMethodData(parameterListOwner, create = create)
+            else -> null
+        }
     }
 
     fun getMethodData(lambda: PsiLambdaExpression, create: Boolean = false): MappingDataContainer.MethodData? {

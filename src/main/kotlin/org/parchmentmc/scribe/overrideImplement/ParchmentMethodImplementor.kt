@@ -41,7 +41,7 @@ import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.TypeConversionUtil
 import com.intellij.util.Consumer
 import org.parchmentmc.scribe.ParchmentMappings
-import org.parchmentmc.scribe.action.intention.RemapMethodParametersIntention
+import org.parchmentmc.scribe.inspection.NonParchmentMethodParametersInspection
 import org.parchmentmc.scribe.settings.ParchmentProjectSettings
 import org.parchmentmc.scribe.util.jvmIndex
 
@@ -100,7 +100,7 @@ class ParchmentMethodImplementor : MethodImplementor {
                 super.insert(targetClass, anchor, before)
 
                 val insertedMethod = this.psiMember ?: return
-                RemapMethodParametersIntention.remapMethodParameters(insertedMethod)
+                NonParchmentMethodParametersInspection.remapMethodParameters(insertedMethod)
             }
         }
     }
