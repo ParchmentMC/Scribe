@@ -12,6 +12,13 @@ version = pluginVersion
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(11)
 
+sourceSets {
+    gradleToolingExtension {
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -38,7 +45,8 @@ dependencies {
     implementation "org.ow2.asm:asm-tree:${asmVersion}"
     implementation "org.ow2.asm:asm-analysis:${asmVersion}"
 
-    compileOnly "org.codehaus.groovy:groovy-all:${groovyVersion}"
+    gradleToolingExtensionCompileOnly "org.codehaus.groovy:groovy-all:${groovyVersion}"
+    gradleToolingExtensionCompileOnly sourceSets.main.output
 }
 
 configurations.implementation {
@@ -60,7 +68,7 @@ license {
     header = file('HEADER')
     ext {
         name = 'Scribe'
-        year = 2021
+        year = 2022
         holder = 'ParchmentMC'
     }
     exclude '**/bytecode-utils.kt', '**/class-utils.kt', '**/MemberReference.kt', '**/psi-utils.kt', '**/gradle-util.kt'
@@ -75,7 +83,21 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     }
 }
 
-compileGroovy {
-    dependsOn tasks.getByPath('compileKotlin')
-    classpath += files(compileKotlin.destinationDir)
+compileGradleToolingExtensionKotlin {
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+compileGradleToolingExtensionGroovy {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+    def kotlinTask = tasks.compileGradleToolingExtensionKotlin
+    dependsOn kotlinTask
+    classpath += files(kotlinTask.destinationDir)
+}
+
+jar {
+    from sourceSets.gradleToolingExtension.output
 }

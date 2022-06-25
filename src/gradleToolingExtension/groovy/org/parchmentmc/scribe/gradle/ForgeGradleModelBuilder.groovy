@@ -1,6 +1,6 @@
 /*
  * Scribe
- * Copyright (C) 2021 ParchmentMC
+ * Copyright (C) 2022 ParchmentMC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 package org.parchmentmc.scribe.gradle
 
 import org.gradle.api.Project
-import org.gradle.api.provider.Provider
 import org.jetbrains.plugins.gradle.tooling.ErrorMessageBuilder
 import org.jetbrains.plugins.gradle.tooling.ModelBuilderService
 

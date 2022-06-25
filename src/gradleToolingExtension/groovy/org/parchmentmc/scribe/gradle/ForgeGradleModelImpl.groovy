@@ -1,6 +1,6 @@
 /*
  * Scribe
- * Copyright (C) 2021 ParchmentMC
+ * Copyright (C) 2022 ParchmentMC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,19 @@
 
 package org.parchmentmc.scribe.gradle
 
-import java.io.File
+import groovy.transform.CompileStatic
 
-interface ForgeGradleModel {
-    fun getMcVersion(): String
-    fun getExtractSrgTaskName(): String
-    fun getExtractSrgTaskOutput(): File
-    fun getClientMappings(): File?
+@CompileStatic
+class ForgeGradleModelImpl implements ForgeGradleModel, Serializable {
+    final String mcVersion
+    final String extractSrgTaskName
+    final File extractSrgTaskOutput
+    final File clientMappings
+
+    ForgeGradleModelImpl(String mcVersion, String extractSrgTaskName, File extractSrgTaskOutput, File clientMappings) {
+        this.mcVersion = mcVersion
+        this.extractSrgTaskName = extractSrgTaskName
+        this.extractSrgTaskOutput = extractSrgTaskOutput
+        this.clientMappings = clientMappings
+    }
 }
