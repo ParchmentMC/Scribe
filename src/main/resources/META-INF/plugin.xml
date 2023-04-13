@@ -22,7 +22,7 @@
 -->
 
 <idea-plugin url="https://github.com/ParchmentMC/Scribe">
-    <idea-version since-build="221"/>
+    <idea-version since-build="231"/>
     <id>org.parchmentmc.scribe</id>
     <name>Scribe</name>
     <vendor>ParchmentMC</vendor>

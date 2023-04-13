@@ -3,14 +3,14 @@ plugins {
     id 'groovy'
     id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
     id 'idea'
-    id 'org.jetbrains.intellij' version '1.6.0'
+    id 'org.jetbrains.intellij' version '1.13.3'
     id 'org.cadixdev.licenser' version '0.6.1'
 }
 
 group = pluginGroup
 version = pluginVersion
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(11)
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 sourceSets {
     gradleToolingExtension {
@@ -77,15 +77,21 @@ license {
 idea.module.excludeDirs.add(project.file(intellij.sandboxDir.get()))
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-        jvmTarget = '11'
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
         freeCompilerArgs = ['-Xjvm-default=all']
     }
 }
 
 compileGradleToolingExtensionKotlin {
-    kotlinOptions {
-        jvmTarget = '1.8'
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+    }
+}
+
+compileGradleToolingExtensionJava {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(8)
     }
 }
 
@@ -95,7 +101,7 @@ compileGradleToolingExtensionGroovy {
     }
     def kotlinTask = tasks.compileGradleToolingExtensionKotlin
     dependsOn kotlinTask
-    classpath += files(kotlinTask.destinationDir)
+    classpath += files(kotlinTask.destinationDirectory)
 }
 
 jar {

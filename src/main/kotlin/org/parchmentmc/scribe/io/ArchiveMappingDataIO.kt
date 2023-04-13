@@ -36,13 +36,13 @@ class ArchiveMappingDataIO(private val jsonMapper: JsonMappingDataIO) : MappingD
         Files.deleteIfExists(output)
         output.parent?.let { Files.createDirectories(it) }
 
-        FileSystems.newFileSystem(output, null).use { fs ->
+        FileSystems.newFileSystem(output, null as ClassLoader?).use { fs ->
             jsonMapper.write(data, fs.getPath("parchment.json"))
         }
     }
 
     @Throws(IOException::class)
-    override fun read(input: Path, mutable: Boolean): VersionedMDCDelegate<*> = FileSystems.newFileSystem(input, null).use { fs ->
+    override fun read(input: Path, mutable: Boolean): VersionedMDCDelegate<*> = FileSystems.newFileSystem(input, null as ClassLoader?).use { fs ->
         jsonMapper.read(fs.getPath("parchment.json"), mutable)
     }
 

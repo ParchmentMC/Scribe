@@ -47,10 +47,7 @@ import org.parchmentmc.scribe.util.jvmIndex
 class NonParchmentMethodParametersInspection : BaseInspection() {
     override fun buildVisitor(): BaseInspectionVisitor {
         return object : BaseInspectionVisitor() {
-            override fun visitMethod(method: PsiMethod?) {
-                if (method == null)
-                    return
-
+            override fun visitMethod(method: PsiMethod) {
                 val mappings = ParchmentMappings.getInstance(method.project)
                 if (isMismatched(mappings.getMethodData(method, searchSupers = true), method.parameterList)) {
                     registerError(method)
