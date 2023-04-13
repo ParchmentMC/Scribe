@@ -68,7 +68,7 @@ license {
     header = file('HEADER')
     ext {
         name = 'Scribe'
-        year = 2022
+        year = 2023
         holder = 'ParchmentMC'
     }
     exclude '**/bytecode-utils.kt', '**/class-utils.kt', '**/MemberReference.kt', '**/psi-utils.kt', '**/gradle-util.kt'
