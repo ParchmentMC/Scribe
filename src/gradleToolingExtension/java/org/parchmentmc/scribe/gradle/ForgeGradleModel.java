@@ -21,13 +21,13 @@
  * SOFTWARE.
  */
 
-package org.parchmentmc.scribe.gradle
+package org.parchmentmc.scribe.gradle;
 
-import java.io.File
+import java.io.File;
 
-interface ForgeGradleModel {
-    fun getMcVersion(): String
-    fun getExtractSrgTaskName(): String
-    fun getExtractSrgTaskOutput(): File
-    fun getClientMappings(): File?
+public interface ForgeGradleModel {
+    String getMcVersion();
+    String getExtractSrgTaskName();
+    File getExtractSrgTaskOutput();
+    File getClientMappings();
 }

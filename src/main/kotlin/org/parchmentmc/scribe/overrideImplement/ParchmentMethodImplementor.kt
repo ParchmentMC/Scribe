@@ -21,6 +21,8 @@
  * SOFTWARE.
  */
 
+@file:Suppress("DEPRECATION")
+
 package org.parchmentmc.scribe.overrideImplement
 
 import com.intellij.codeInsight.MethodImplementor

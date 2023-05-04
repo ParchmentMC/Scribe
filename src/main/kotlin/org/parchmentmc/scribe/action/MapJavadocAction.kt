@@ -24,6 +24,7 @@
 package org.parchmentmc.scribe.action
 
 import com.intellij.codeInsight.navigation.targetPresentation
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.Project
@@ -108,9 +109,12 @@ class MapJavadocAction : MappingAction() {
 
         if (allSuperMethods.isNotEmpty()) {
             allSuperMethods.add(0, method)
-            @Suppress("UnstableApiUsage")
-            val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod -> mapFun(targetMethod) }
-            popup.showInBestPositionFor(e.getData(CommonDataKeys.EDITOR) ?: return)
+            val editor = e.getData(CommonDataKeys.EDITOR) ?: return
+            e.updateSession.compute(this, "createPopup", ActionUpdateThread.EDT) {
+                @Suppress("UnstableApiUsage")
+                val popup = createTargetPopup("Choose method in inheritance structure to map", allSuperMethods, ::targetPresentation) { targetMethod -> mapFun(targetMethod) }
+                popup.showInBestPositionFor(editor)
+            }
         } else {
             mapFun(method)
         }

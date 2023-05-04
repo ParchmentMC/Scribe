@@ -23,6 +23,7 @@
 
 package org.parchmentmc.scribe.action
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.ui.MessageDialogBuilder
@@ -31,6 +32,8 @@ import org.parchmentmc.scribe.ParchmentMappings
 import java.io.IOException
 
 class ResetMappingsAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun actionPerformed(e: AnActionEvent) {
         val mappings = ParchmentMappings.getInstance(e.project ?: return)
 

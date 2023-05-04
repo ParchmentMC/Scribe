@@ -13,11 +13,15 @@ version = pluginVersion
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 sourceSets {
-    gradleToolingExtension {
-        compileClasspath += sourceSets.main.compileClasspath
-        runtimeClasspath += sourceSets.main.runtimeClasspath
-    }
+    gradleToolingExtension
 }
+
+def gradleToolExtensionJar = tasks.register(sourceSets.gradleToolingExtension.jarTaskName, Jar) {
+    from sourceSets.gradleToolingExtension.output
+    archiveClassifier = 'gradle-tooling-extension'
+}
+
+tasks.jar.dependsOn sourceSets.gradleToolingExtension.jarTaskName
 
 repositories {
     mavenCentral()
@@ -33,12 +37,18 @@ repositories {
         name = 'IntelliJ Dependencies'
         url = 'https://cache-redirector.jetbrains.com/intellij-dependencies'
     }
+    maven {
+        name = 'IntelliJ Snapshots' // For org.jetbrains.intellij.gradle:gradle-tooling-extension
+        url = 'https://www.jetbrains.com/intellij-repository/snapshots'
+    }
 }
 
 dependencies {
     implementation "org.parchmentmc.feather:io-moshi:${featherVersion}"
     implementation "com.squareup.moshi:moshi-kotlin:${moshiVersion}"
     implementation "net.minecraftforge:srgutils:${srgutilsVersion}"
+    compileOnly sourceSets.gradleToolingExtension.output
+    runtimeOnly files(gradleToolExtensionJar)
 
     // ASM
     implementation "org.ow2.asm:asm:${asmVersion}"
@@ -46,11 +56,14 @@ dependencies {
     implementation "org.ow2.asm:asm-analysis:${asmVersion}"
 
     gradleToolingExtensionCompileOnly "org.codehaus.groovy:groovy-all:${groovyVersion}"
-    gradleToolingExtensionCompileOnly sourceSets.main.output
+    gradleToolingExtensionCompileOnly "com.jetbrains.intellij.gradle:gradle-tooling-extension:${gradleToolingExtensionVersion}"
+    gradleToolingExtensionCompileOnly "org.jetbrains:annotations:${jetbrainsAnnotationsVersion}"
 }
 
-configurations.implementation {
-    exclude group: 'org.jetbrains.kotlin'
+configurations {
+    implementation {
+        exclude group: 'org.jetbrains.kotlin'
+    }
 }
 
 intellij {
@@ -83,27 +96,21 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     }
 }
 
-compileGradleToolingExtensionKotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
-    }
-}
-
 compileGradleToolingExtensionJava {
     javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(8)
+        languageVersion = JavaLanguageVersion.of(11)
     }
+
+    options.bootstrapClasspath = files(javaCompiler.map { it.metadata.installationPath.file("jre/lib/rt.jar") })
+    options.release = 6
+    options.compilerArgs = ['-Xlint:-options']
 }
 
 compileGradleToolingExtensionGroovy {
     javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(8)
+        languageVersion = JavaLanguageVersion.of(11)
     }
-    def kotlinTask = tasks.compileGradleToolingExtensionKotlin
-    dependsOn kotlinTask
-    classpath += files(kotlinTask.destinationDirectory)
-}
 
-jar {
-    from sourceSets.gradleToolingExtension.output
+    sourceCompatibility = targetCompatibility = '1.6'
+    options.compilerArgs = ['-Xlint:-options', '-proc:none']
 }

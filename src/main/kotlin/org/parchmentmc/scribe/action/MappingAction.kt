@@ -23,11 +23,14 @@
 
 package org.parchmentmc.scribe.action
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import org.parchmentmc.scribe.ParchmentMappings
 
 abstract class MappingAction : AnAction() {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = e.project?.let { ParchmentMappings.getInstance(it).mappingsMutable } ?: false
     }
