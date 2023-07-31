@@ -31,9 +31,11 @@ import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiParameter
+import com.intellij.refactoring.RefactoringFactory
 import com.intellij.ui.list.createTargetPopup
 import com.intellij.util.text.nullize
 import org.parchmentmc.scribe.ParchmentMappings
+import org.parchmentmc.scribe.settings.ParchmentProjectSettings
 import org.parchmentmc.scribe.util.findAllSuperConstructors
 import org.parchmentmc.scribe.util.findAllSuperMethods
 
@@ -58,6 +60,17 @@ class MapParameterAction : MappingAction() {
             parameterData.name = mapped
             mappings.modified = true
             ParchmentMappings.invalidateHints()
+
+            if (ParchmentProjectSettings.getInstance(project).renameAfterRemap) {
+                val file = parameter.containingFile.virtualFile
+                if (file != null && !file.isWritable) {
+                    return
+                }
+
+                val factory = RefactoringFactory.getInstance(project)
+                val renameRefactoring = factory.createRename(parameter, mapped, false, false)
+                renameRefactoring.run()
+            }
         }
 
         mapParameter(e, parameter, mapFun)
