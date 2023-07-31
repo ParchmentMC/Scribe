@@ -82,6 +82,12 @@ class ParchmentProjectConfigurable(private val project: Project) : BoundConfigur
                 .bindSelected(settings::remapParameters)
                 .comment("Determines whether Scribe should automatically remap parameters when inserting constructors and overrides.")
         }
+
+        row {
+            checkBox("Rename Parameters When Remapping")
+                .bindSelected(settings::renameAfterRemap)
+                .comment("Determines whether Scribe should automatically rename parameters after they are remapped.")
+        }
     }
 
     override fun apply() {

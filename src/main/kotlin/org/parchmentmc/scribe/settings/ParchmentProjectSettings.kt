@@ -35,7 +35,8 @@ class ParchmentProjectSettings : PersistentStateComponent<ParchmentProjectSettin
     data class State(
         var mappingsPath: String = "",
         var displayHints: Boolean = true,
-        var remapParameters: Boolean = true
+        var remapParameters: Boolean = true,
+        var renameAfterRemap : Boolean = true
     )
 
     private var state = State()
@@ -70,6 +71,12 @@ class ParchmentProjectSettings : PersistentStateComponent<ParchmentProjectSettin
         get() = state.remapParameters
         set(value) {
             state.remapParameters = value
+        }
+
+    var renameAfterRemap: Boolean
+        get() = state.renameAfterRemap
+        set(value) {
+            state.renameAfterRemap = value
         }
 
     companion object {
