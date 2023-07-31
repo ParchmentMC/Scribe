@@ -62,7 +62,12 @@ class MapParameterAction : MappingAction() {
             ParchmentMappings.invalidateHints()
 
             if (ParchmentProjectSettings.getInstance(project).renameAfterRemap) {
-                val factory = RefactoringFactory.getInstance(project);
+                val file = parameter.containingFile.virtualFile
+                if (file != null && !file.isWritable) {
+                    return
+                }
+
+                val factory = RefactoringFactory.getInstance(project)
                 val renameRefactoring = factory.createRename(parameter, mapped, false, false)
                 renameRefactoring.run()
             }
