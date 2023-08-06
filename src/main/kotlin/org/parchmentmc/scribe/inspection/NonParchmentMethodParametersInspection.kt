@@ -94,7 +94,7 @@ class NonParchmentMethodParametersInspection : BaseInspection() {
                     val paramName = methodData.getParameter(parameter.jvmIndex)?.name ?: return@forEachIndexed
                     val renameProcessor = RenameProcessor(project, parameter, paramName, false, false)
                     if (checkForConflicts(method, renameProcessor, parameter, paramName)) {
-                        DumbService.getInstance(project).showDumbModeNotification("Rename skipped due to name conflict")
+                        DumbService.getInstance(project).showDumbModeNotification("One or parameters could not be renamed because their name would conflict with the name of an existing local variable.")
                         return@forEachIndexed
                     }
                     if (renameRefactoring == null) {
