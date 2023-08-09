@@ -23,18 +23,24 @@
 
 package org.parchmentmc.scribe.inspection
 
-import com.intellij.codeInspection.LocalQuickFixAndIntentionActionOnPsiElement
 import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiParameter
 import com.intellij.psi.PsiParameterList
-import com.intellij.psi.PsiVariable
+import com.intellij.refactoring.RefactoringBundle
 import com.intellij.refactoring.RefactoringFactory
-import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.RenameRefactoring
 import com.intellij.refactoring.rename.RenameProcessor
 import com.intellij.refactoring.rename.RenamePsiElementProcessor
+import com.intellij.refactoring.rename.RenameUtil
+import com.intellij.usageView.UsageInfo
+import com.intellij.util.containers.MultiMap
 import com.siyeh.ig.BaseInspection
 import com.siyeh.ig.BaseInspectionVisitor
 import com.siyeh.ig.InspectionGadgetsFix
@@ -79,16 +85,44 @@ class NonParchmentMethodParametersInspection : BaseInspection() {
             val methodData = ParchmentMappings.getInstance(project).getMethodData(method, searchSupers = true) ?: return
             val parameters = method.parameterList.parameters
 
+
             DumbService.getInstance(project).smartInvokeLater {
+                val factory = RefactoringFactory.getInstance(project)
+                var renameRefactoring: RenameRefactoring? = null
+
                 parameters.forEachIndexed { index, parameter ->
                     val paramName = methodData.getParameter(parameter.jvmIndex)?.name ?: return@forEachIndexed
-                    (parameters.getOrNull(index) as? PsiVariable)?.let {
-                        val factory = RefactoringFactory.getInstance(project)
-                        val renameRefactoring = factory.createRename(it, paramName, false, false)
-                        renameRefactoring.run()
+                    val renameProcessor = RenameProcessor(project, parameter, paramName, false, false)
+                    if (checkForConflicts(method, renameProcessor, parameter, paramName)) {
+                        DumbService.getInstance(project).showDumbModeNotification("One or parameters could not be renamed because their name would conflict with the name of an existing local variable.")
+                        return@forEachIndexed
                     }
+                    if (renameRefactoring == null) {
+                        renameRefactoring = factory.createRename(parameter, paramName, false, false)
+                    }
+                    renameRefactoring?.addElement(parameter, paramName)
                 }
+                renameRefactoring?.run()
             }
+        }
+
+        fun checkForConflicts(method: PsiMethod, renameProcessor: RenameProcessor, parameter: PsiParameter, paramName: String, project: Project = method.project): Boolean {
+            val refUsages = getRefUsages(method, project, renameProcessor)
+            val usagesIn: Array<UsageInfo> = refUsages.get()
+            val conflicts = MultiMap<PsiElement, String>()
+            val allRenames: Map<PsiElement, String> = renameProcessor.elements.zip(renameProcessor.newNames).toMap()
+
+
+            RenameUtil.addConflictDescriptions(usagesIn, conflicts)
+            RenamePsiElementProcessor.forElement(parameter)
+                .findExistingNameConflicts(parameter, paramName, conflicts, allRenames)
+            return !conflicts.isEmpty
+        }
+
+        fun getRefUsages(method: PsiMethod, project: Project = method.project, renameProcessor: RenameProcessor): Ref<Array<UsageInfo>> {
+            val refUsages = Ref<Array<UsageInfo>>()
+            ProgressManager.getInstance().runProcessWithProgressSynchronously({ refUsages.set(ReadAction.compute<Array<UsageInfo>?, RuntimeException?> { renameProcessor.findUsages() }) }, RefactoringBundle.message("progress.text"), true, project)
+            return refUsages
         }
     }
 }
